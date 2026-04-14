@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+  <meta charset='UTF-8' />
+  <meta name='viewport' content='width=device-width, initial-scale=1.0' />
+  <title>PDF Signer — PIN Seal</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #eef1f5;
+      min-height: 100vh;
+      color: #1a1a1a;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1.5rem 1rem 3rem;
+    }
+
+    h1 { font-size: 1.55rem; margin-bottom: 0.3rem; }
+    .subtitle { color: #555; margin-bottom: 1.6rem; font-size: 0.9rem; }
+
+    .layout {
+      display: flex;
+      gap: 1.5rem;
+      align-items: flex-start;
+      width: 100%;
+      max-width: 1100px;
+    }
+
+    /* ── Left: scrollable PDF canvas container ───────────── */
+    .viewer-pane {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+    }
+
+    .viewer-label {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #6b7280;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    #pageContainer {
+      background: #fff;
+      border: 2px solid #d1d5db;
+      border-radius: 10px;
+      padding: 1rem;
+      max-height: 75vh;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      cursor: crosshair;
+    }
+
+    .page-wrapper {
+      position: relative;
+      display: inline-block;
+      width: 100%;
+      line-height: 0;
+    }
+
+    .page-canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      border: 1px solid #e5e7eb;
+      border-radius: 4px;
+      pointer-events: all;
+    }
+
+    .drag-overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      border-radius: 4px;
+      z-index: 10;
+    }
+
+    #selRect {
+      position: absolute;
+      background: rgba(37, 99, 235, 0.15);
+      border: 2px dashed rgba(37, 99, 235, 0.9);
+      border-radius: 3px;
+      display: none;
+      pointer-events: none;
+      z-index: 20;
+    }
+
+    .page-badge {
+      position: absolute;
+      top: 6px; left: 8px;
+      background: rgba(0,0,0,0.55);
+      color: #fff;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
+      pointer-events: none;
+      z-index: 15;
+    }
+
+    /* ── Right: form card ─────────────────────────────────── */
+    .card {
+      width: 320px;
+      flex-shrink: 0;
+      background: #fff;
+      border-radius: 14px;
+      padding: 1.8rem;
+      box-shadow: 0 2px 14px rgba(0,0,0,0.09);
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .section-title {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #6b7280;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 0.2rem;
+    }
+
+    label {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #374151;
+    }
+
+    input {
+      border: 1.5px solid #d1d5db;
+      border-radius: 8px;
+      padding: 0.5rem 0.8rem;
+      font-size: 0.92rem;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    input:focus { border-color: #2563eb; }
+    input[type='file'] { cursor: pointer; }
+
+    .pin-field {
+      background: #fffbf0;
+      border-color: #f59e0b;
+    }
+    .pin-field:focus { border-color: #d97706; }
+
+    .pin-hint {
+      font-size: 0.72rem;
+      color: #92400e;
+      font-weight: 400;
+      margin-top: -0.1rem;
+    }
+
+    .btn-row { display: flex; gap: 0.6rem; }
+
+    button {
+      background: #2563eb;
+      color: #fff;
+      border: none;
+      padding: 0.62rem 1.2rem;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+      flex: 1;
+    }
+    button:hover:not(:disabled) { background: #1d4ed8; }
+    button:disabled { background: #93c5fd; cursor: not-allowed; }
+    button.secondary { background: #6b7280; }
+    button.secondary:hover:not(:disabled) { background: #4b5563; }
+
+    #info {
+      font-size: 0.78rem;
+      color: #4b5563;
+      background: #f8fafc;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 0.7rem 0.9rem;
+      line-height: 1.65;
+      white-space: pre-wrap;
+      word-break: break-all;
+      min-height: 2.8rem;
+    }
+
+    #sealOut {
+      font-size: 0.72rem;
+      color: #065f46;
+      background: #ecfdf5;
+      border: 1px solid #a7f3d0;
+      border-radius: 8px;
+      padding: 0.65rem 0.9rem;
+      word-break: break-all;
+      line-height: 1.6;
+      min-height: 2.5rem;
+    }
+
+    .label-seal { font-size: 0.78rem; font-weight: 700; color: #065f46; }
+
+    .divider { border: none; border-top: 1px solid #e5e7eb; }
+
+    .hint {
+      font-size: 0.78rem;
+      color: #7c3aed;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+    .hint::before { content: '\2196'; font-size: 1rem; }
+
+    #resultBanner {
+      display: none;
+      border-radius: 10px;
+      padding: 1rem 1.2rem;
+      text-align: center;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.35rem;
+      animation: bannerPop 0.3s ease-out;
+    }
+    #resultBanner.visible { display: flex; }
+    @keyframes bannerPop {
+      from { transform: scale(0.85); opacity: 0; }
+      to   { transform: scale(1);   opacity: 1; }
+    }
+    .banner-green { background: #f0fdf4; border: 2px solid #16a34a; }
+    .banner-red   { background: #fef2f2; border: 2px solid #dc2626; }
+
+    .result-icon  { font-size: 2.2rem; }
+    .result-label { font-size: 1.2rem; font-weight: 800; }
+    .result-sub   { font-size: 0.78rem; opacity: 0.85; }
+    .banner-green .result-icon,
+    .banner-green .result-label { color: #16a34a; }
+    .banner-green .result-sub    { color: #15803d; }
+    .banner-red .result-icon,
+    .banner-red .result-label { color: #dc2626; }
+    .banner-red .result-sub    { color: #b91c1c; }
+
+    /* ── Verification link box ─────────────────────────────── */
+    #verifyLinkBox {
+      display: none;
+      background: #eff6ff;
+      border: 1.5px solid #2563eb;
+      border-radius: 8px;
+      padding: 0.8rem 1rem;
+      font-size: 0.78rem;
+      color: #1e40af;
+    }
+    #verifyLinkBox.visible { display: block; }
+    #verifyLinkBox strong { display: block; margin-bottom: 0.35rem; }
+    #verifyLink {
+      font-family: monospace;
+      font-size: 0.72rem;
+      color: #1d4ed8;
+      word-break: break-all;
+      background: #fff;
+      border: 1px solid #c7d2fe;
+      border-radius: 5px;
+      padding: 0.5rem 0.75rem;
+      display: block;
+      margin-top: 0.4rem;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    #verifyLink:hover { background: #dbeafe; }
+    .copy-btn {
+      display: inline-block;
+      margin-top: 0.4rem;
+      font-size: 0.75rem;
+      color: #2563eb;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>PDF Signer</h1>
+  <p class='subtitle'>Click &amp; drag to select a signature area — PIN required to sign</p>
+
+  <div class='layout'>
+
+    <!-- ── Left: PDF viewer ─────────────────────────────────── -->
+    <div class='viewer-pane'>
+      <div class='viewer-label'>PDF Preview</div>
+      <div id='pageContainer'>
+        <div style='color:#9ca3af;font-size:0.85rem;text-align:center;padding:2rem;'>
+          Upload a PDF to preview all pages.
+        </div>
+      </div>
+      <div class='hint' id='hintEl' style='display:none;'>
+        Click and drag on any page to select the signature area
+      </div>
+      <div id='selRect'></div>
+    </div>
+
+    <!-- ── Right: Form card ─────────────────────────────────── -->
+    <div class='card' style='position:sticky;top:1.5rem;'>
+
+      <div class='section-title'>Identity</div>
+
+      <label>
+        Full Name
+        <input type='text' id='fName' placeholder='Jane Doe' autocomplete='off' />
+      </label>
+      <label>
+        Email
+        <input type='email' id='fEmail' placeholder='jane@example.com' autocomplete='off' />
+      </label>
+      <label>
+        Company <span style='font-weight:400;color:#9ca3af;'>(optional)</span>
+        <input type='text' id='fCompany' placeholder='Acme Corp' autocomplete='off' />
+      </label>
+
+      <!-- PIN — required for signing -->
+      <label>
+        Signer PIN
+        <input type='password' id='fPin' class='pin-field' placeholder='Enter your secret PIN' autocomplete='off' />
+        <span class='pin-hint'>PIN is used as a private key to generate your Digital Seal</span>
+      </label>
+
+      <hr class='divider' />
+
+      <div class='section-title'>PDF File</div>
+      <label>
+        <input type='file' id='fileInput' accept='.pdf,application/pdf' />
+      </label>
+
+      <div id='info'>Upload a PDF, fill in all fields, then drag to select a signature region.</div>
+
+      <div class='btn-row'>
+        <button id='signBtn' disabled>Sign &amp; Download</button>
+        <button id='clearBtn' class='secondary'>Clear</button>
+      </div>
+
+      <div class='label-seal'>Digital Seal (HMAC-SHA256)</div>
+      <div id='sealOut'>(PIN + PDF bytes + metadata)</div>
+
+      <div id='resultBanner'>
+        <div class='result-icon' id='resIcon'>✓</div>
+        <div class='result-label' id='resLabel'>SIGNED</div>
+        <div class='result-sub' id='resSub'></div>
+      </div>
+
+      <!-- Verification link (shown after successful signing) -->
+      <div id='verifyLinkBox'>
+        <strong>Verification Link</strong>
+        Share this link to let recipients verify the document:
+        <a id='verifyLink' href='#' target='_blank'>—</a>
+        <span class='copy-btn' id='copyLinkBtn'>Copy link</span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- pdf.js renders pages; pdf-lib modifies PDF -->
+  <script src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js'></script>
+  <script src='https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js'></script>
+
+  <script>
+    /* ════════════════════════════════════════════════════════════
+       HMAC-SHA256 Digital Seal via Web Crypto API
+
+       Key Generation:
+         importKey(PIN string) → HMAC-SHA256 CryptoKey
+
+       Signing:
+         sign( CryptoKey, PDF bytes + Name + Email + UTC timestamp )
+         → raw signature ArrayBuffer → hex string = "Digital Seal"
+
+       The PIN never leaves the browser and is never stored.
+       Only the seal (hex signature) is embedded in the PDF metadata.
+    ════════════════════════════════════════════════════════════ */
+
+    // Convert ArrayBuffer to lowercase hex string
+    function bufferToHex(buffer) {
+      return Array.from(new Uint8Array(buffer), b =>
+        b.toString(16).padStart(2, '0')
+      ).join('');
+    }
+
+    /* ── Import PIN string as an HMAC-SHA256 CryptoKey ──────── */
+    async function importPinKey(pin) {
+      // Derive a fixed-length key from the PIN via SHA-256,
+      // then import it as an HMAC-SHA256 key (extractable: false)
+      const pinBytes = new TextEncoder().encode(pin);
+      const keyDigest = await crypto.subtle.digest('SHA-256', pinBytes);
+
+      return crypto.subtle.importKey(
+        'raw',
+        keyDigest,
+        { name: 'HMAC', hash: 'SHA-256' },
+        false,          // not extractable
+        ['sign']         // key usage: signing only
+      );
+    }
+
+    /* ── Generate Digital Seal: HMAC-SHA256(PDF bytes + name + email + timestamp) ── */
+    async function generateDigitalSeal(pin, name, email, utcTimestamp, pdfBytes) {
+      const key = await importPinKey(pin);
+
+      // Build the signing payload: PDF bytes + UTF-8 Name + UTF-8 Email + UTF-8 Timestamp
+      const textEncoder = new TextEncoder();
+      const textPart    = textEncoder.encode(name + email + utcTimestamp);
+      const payload     = new Uint8Array(textPart.byteLength + pdfBytes.byteLength);
+      payload.set(textPart, 0);
+      payload.set(new Uint8Array(pdfBytes), textPart.byteLength);
+
+      // Sign with HMAC-SHA256
+      const signatureBuf = await crypto.subtle.sign('HMAC', key, payload);
+
+      // Convert raw bytes to hex: this is the "Digital Seal"
+      return bufferToHex(signatureBuf);
+    }
+
+    /* ════════════════════════════════════════════════════════════
+       Render ALL pages of a PDF as individual <canvas> elements.
+       scale=1.0 → canvas pixels == PDF points (72 DPI).
+    ════════════════════════════════════════════════════════════ */
+    async function renderAllPages(pdfData, container) {
+      container.querySelectorAll('.page-wrapper').forEach(el => el.remove());
+
+      const doc   = await pdfjsLib.getDocument({ data: pdfData }).promise;
+      const pages = [];
+
+      for (let i = 1; i <= doc.numPages; i++) {
+        const page   = await doc.getPage(i);
+        const vp     = page.getViewport({ scale: 1.0 });
+        const canvas = document.createElement('canvas');
+        canvas.width  = vp.width;
+        canvas.height = vp.height;
+        canvas.className = 'page-canvas';
+
+        await page.render({
+          canvasContext: canvas.getContext('2d'),
+          viewport: vp,
+        }).promise;
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'page-wrapper';
+        wrapper.setAttribute('data-page-index', i - 1);
+
+        const badge = document.createElement('div');
+        badge.className   = 'page-badge';
+        badge.textContent = `Page ${i}`;
+
+        const overlay = document.createElement('div');
+        overlay.className = 'drag-overlay';
+        overlay.setAttribute('data-page-index', i - 1);
+
+        wrapper.appendChild(canvas);
+        wrapper.appendChild(badge);
+        wrapper.appendChild(overlay);
+        container.appendChild(wrapper);
+
+        pages.push({
+          pageIndex: i - 1,
+          canvas,
+          pdfWidth:  vp.width,
+          pdfHeight: vp.height,
+          pageNum:   i,
+        });
+      }
+
+      return pages;
+    }
+
+    /* ════════════════════════════════════════════════════════════
+       Libraries init guard
+    ════════════════════════════════════════════════════════════ */
+    (function init() {
+      if (typeof pdfjsLib === 'undefined') throw new Error('pdf.js not found');
+      if (typeof PDFLib === 'undefined')   throw new Error('pdf-lib not found');
+      pdfjsLib.GlobalWorkerOptions.workerSrc =
+        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+    }());
+
+    (function checkLibs() {
+      if (!PDFLib.StandardFonts || !PDFLib.PDFDocument || !PDFLib.rgb)
+        throw new Error('pdf-lib missing expected exports');
+    }());
+
+    /* ════════════════════════════════════════════════════════════
+       UI references
+    ════════════════════════════════════════════════════════════ */
+    const fName        = document.getElementById('fName');
+    const fEmail       = document.getElementById('fEmail');
+    const fCompany     = document.getElementById('fCompany');
+    const fPin         = document.getElementById('fPin');
+    const fileInput    = document.getElementById('fileInput');
+    const signBtn      = document.getElementById('signBtn');
+    const clearBtn     = document.getElementById('clearBtn');
+    const pageContainer = document.getElementById('pageContainer');
+    const hintEl       = document.getElementById('hintEl');
+    const infoEl       = document.getElementById('info');
+    const sealOut      = document.getElementById('sealOut');
+    const resultBanner = document.getElementById('resultBanner');
+    const resIcon      = document.getElementById('resIcon');
+    const resLabel     = document.getElementById('resLabel');
+    const resSub       = document.getElementById('resSub');
+    const selRect      = document.getElementById('selRect');
+
+    let pdfBytes     = null;
+    let fileName     = 'document.pdf';
+    let pagesMeta    = [];
+    let utcStamp     = '';
+
+    // Selection stored in CANVAS PX; scaled to PDF pt only at sign time
+    let selPageIndex = null;
+    let selStartX    = 0;
+    let selStartY    = 0;
+    let selW         = 0;
+    let selH         = 0;
+
+    let isDragging   = false;
+    let dragOverlay  = null;
+
+    /* ── Button guard: all four fields required before signing ─── */
+    function refreshBtn() {
+      signBtn.disabled = !(
+        pdfBytes !== null &&
+        fName.value.trim() !== '' &&
+        fEmail.value.trim() !== '' &&
+        fPin.value.trim() !== '' &&          // ← PIN required
+        selPageIndex !== null
+      );
+    }
+
+    [fName, fEmail, fCompany, fPin].forEach(el =>
+      el.addEventListener('input', refreshBtn)
+    );
+
+    /* ── Visual selection rectangle ──────────────────────────── */
+    function updateSelRect(wrapper, startX, startY, curX, curY) {
+      const rect = wrapper.getBoundingClientRect();
+      const l    = Math.min(startX, curX) - rect.left;
+      const t    = Math.min(startY, curY) - rect.top;
+      const w    = Math.abs(curX - startX);
+      const h    = Math.abs(curY - startY);
+      selRect.style.left   = l + 'px';
+      selRect.style.top    = t + 'px';
+      selRect.style.width  = w + 'px';
+      selRect.style.height = h + 'px';
+      selRect.style.display = 'block';
+    }
+
+    /* ── Drag handlers ────────────────────────────────────────── */
+    function onMouseDown(e) {
+      if (!pdfBytes) return;
+      e.preventDefault();
+      const overlay  = e.currentTarget;
+      const wrapper  = overlay.parentElement;
+      const canvas   = wrapper.querySelector('canvas');
+      const rect     = canvas.getBoundingClientRect();
+      isDragging     = true;
+      dragOverlay    = overlay;
+      selStartX      = e.clientX - rect.left;
+      selStartY      = e.clientY - rect.top;
+      selPageIndex   = parseInt(overlay.getAttribute('data-page-index'), 10);
+      selRect.style.display = 'none';
+      selW = 0; selH = 0;
+    }
+
+    function onMouseMove(e) {
+      if (!isDragging || !dragOverlay) return;
+      e.preventDefault();
+      const wrapper = dragOverlay.parentElement;
+      const canvas  = wrapper.querySelector('canvas');
+      const rect    = canvas.getBoundingClientRect();
+      updateSelRect(wrapper, selStartX, selStartY,
+        e.clientX - rect.left, e.clientY - rect.top);
+    }
+
+    function onMouseUp(e) {
+      if (!isDragging || !dragOverlay) return;
+      e.preventDefault();
+      const wrapper = dragOverlay.parentElement;
+      const canvas  = wrapper.querySelector('canvas');
+      const endX    = e.clientX - canvas.getBoundingClientRect().left;
+      const endY    = e.clientY - canvas.getBoundingClientRect().top;
+      const meta    = pagesMeta.find(p => p.pageIndex === selPageIndex);
+      if (!meta) { isDragging = false; dragOverlay = null; return; }
+
+      selStartX = Math.min(selStartX, endX);
+      selStartY = Math.min(selStartY, endY);
+      selW      = Math.abs(endX - selStartX);
+      selH      = Math.abs(endY - selStartY);
+
+      updateSelRect(wrapper, selStartX, selStartY, selStartX + selW, selStartY + selH);
+
+      const canvasRect = canvas.getBoundingClientRect();
+      const canvasDisplayWidth = canvasRect.width;
+      const canvasDisplayHeight = canvasRect.height;
+      const ratioX = meta.pdfWidth / canvasDisplayWidth;
+      const ratioY = meta.pdfHeight / canvasDisplayHeight;
+
+      // Use the same Y-flip formula as the signing logic
+      const pdfX   = selStartX * ratioX;
+      const pdfY   = meta.pdfHeight - (selStartY * ratioY) - (selH * ratioY);
+      const pdfW   = selW * ratioX;
+      const pdfH   = selH * ratioY;
+
+      infoEl.textContent =
+        `File: ${fileName}\n` +
+        `Pages: ${pagesMeta.length}\n` +
+        `Selection on Page ${selPageIndex + 1}:\n` +
+        `X=${pdfX.toFixed(1)}  Y=${pdfY.toFixed(1)}  ` +
+        `W=${pdfW.toFixed(1)}  H=${pdfH.toFixed(1)} pt\n` +
+        `ratioX = ${ratioX.toFixed(4)}, ratioY = ${ratioY.toFixed(4)}\n` +
+        `  pdfX = clickX * ratioX\n` +
+        `  pdfY = pageHeight - (clickY * ratioY) - (selectionH * ratioY)`;
+
+      isDragging = false;
+      dragOverlay = null;
+      refreshBtn();
+    }
+
+    /* ── File selected → render all pages ────────────────────── */
+    fileInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      pdfBytes     = null;
+      selPageIndex = null;
+      selW = 0; selH = 0;
+      pagesMeta    = [];
+      signBtn.disabled = true;
+      selRect.style.display = 'none';
+      verifyLinkBox.classList.remove('visible');
+      resultBanner.classList.remove('visible', 'banner-green', 'banner-red');
+      infoEl.textContent = 'Loading…';
+      sealOut.textContent = '(PIN + PDF bytes + metadata)';
+
+      try {
+        // ── Get ArrayBuffer from the File object ──────────────────────────
+        const originalBuffer = await file.arrayBuffer();
+
+        // Debug: confirm buffer exists before slicing
+        console.log('Buffer loaded:', originalBuffer);
+
+        // ── Create two independent clones for memory safety ───────────────
+        //   Clone A → pdf.js  (renderAllPages — needs raw bytes)
+        //   Clone B → kept as pdfBytes  (signBtn reads this; cloned via .slice(0) again at sign time)
+        const bufferForPdfJs = originalBuffer.slice(0);    // Clone A — for rendering
+        pdfBytes             = new Uint8Array(originalBuffer.slice(0));    // Clone B — cached in memory as Uint8Array
+
+        fileName = file.name.replace(/\//g, '-') || 'document.pdf';
+
+        pagesMeta = await renderAllPages(bufferForPdfJs, pageContainer);
+
+        const overlays = pageContainer.querySelectorAll('.drag-overlay');
+        overlays.forEach(ov => {
+          ov.addEventListener('mousedown', onMouseDown);
+          ov.addEventListener('mousemove', onMouseMove);
+          ov.addEventListener('mouseup',   onMouseUp);
+          ov.addEventListener('mouseleave', onMouseUp);
+        });
+
+        hintEl.style.display = 'flex';
+        infoEl.textContent =
+          `File: ${fileName}\n` +
+          `${pagesMeta.length} page${pagesMeta.length !== 1 ? 's' : ''} loaded.\n` +
+          `Fill in all fields, then drag to select the signature area.`;
+
+        refreshBtn();
+      } catch (err) {
+        infoEl.textContent = `Load error: ${err.message}`;
+      }
+    });
+
+    /* ════════════════════════════════════════════════════════════
+       Sign & Download — PIN-derived HMAC-SHA256 Digital Seal
+    ════════════════════════════════════════════════════════════ */
+    signBtn.addEventListener('click', async () => {
+      if (!pdfBytes || selPageIndex === null) return;
+
+      const name    = fName.value.trim();
+      const email   = fEmail.value.trim();
+      const company = fCompany.value.trim();
+      const pin     = fPin.value.trim();
+
+      signBtn.disabled = true;
+
+      try {
+        utcStamp = new Date().toISOString();
+
+        // ── Memory handling: re-clone pdfBytes at sign time ──────────────────
+        // pdfBytes was set when the file was loaded as a Uint8Array (clone of the
+        // original File ArrayBuffer). We re-derive the full ArrayBuffer view
+        // safely, then make two independent clones for the two consumers:
+        //   Clone C → SubtleCrypto  (generateDigitalSeal)
+        //   Clone D → pdf-lib       (PDFDocument.load)
+        //
+        // Guard: check pdfBytes exists before touching .buffer or .slice()
+        if (!pdfBytes) {
+          throw new Error('PDF bytes not loaded. Please upload the file first.');
+        }
+
+        // Reconstruct the full ArrayBuffer from the Uint8Array view.
+        // Uint8Array.buffer may be a sub-range of the underlying ArrayBuffer if the
+        // engine created a shared backing store, so we slice from 0 to .length.
+        const pdfArrayBuffer = pdfBytes.buffer;
+        const pdfByteOffset  = pdfBytes.byteOffset;
+        const pdfByteLength   = pdfBytes.length;
+
+        // Verify we have a valid ArrayBuffer before slicing
+        if (!pdfArrayBuffer) {
+          throw new Error('PDF buffer is undefined. Please upload the file again.');
+        }
+
+        // Create two fully-independent ArrayBuffer clones.
+        const cloneForHashing = pdfArrayBuffer.slice(pdfByteOffset, pdfByteOffset + pdfByteLength);
+        const cloneForPdfLib  = pdfArrayBuffer.slice(pdfByteOffset, pdfByteOffset + pdfByteLength);
+
+        // Log buffer info to console for debugging.
+        console.log('[PDF Signer] pdfBytes buffer info:', {
+          byteOffset:  pdfByteOffset,
+          length:      pdfByteLength,
+          totalBuffer: pdfArrayBuffer.byteLength,
+          clonesReady: 'two independent clones created',
+        });
+
+        // Confirm buffer loaded before using slice
+        console.log('Buffer loaded:', pdfArrayBuffer);
+
+        // ── 1. Generate Digital Seal ───────────────────────────────────────────
+        //    seal = HMAC-SHA256( PIN, PDF bytes + name + email + timestamp )
+        const digitalSeal = await generateDigitalSeal(pin, name, email, utcStamp, cloneForHashing);
+        sealOut.textContent = digitalSeal;
+
+        // ── 2. Load PDF — use the second independent clone ─────────────────
+        const doc  = await PDFLib.PDFDocument.load(cloneForPdfLib);
+        const page = doc.getPage(selPageIndex);
+        const pdfWidth  = page.getWidth();
+        const pdfHeight = page.getHeight();
+
+
+
+        // ── 3. Scale canvas-px selection to PDF points with proper ratios ───────────
+        const meta = pagesMeta.find(p => p.pageIndex === selPageIndex);
+        if (!meta) throw new Error('No metadata for selected page.');
+
+        // Get canvas dimensions for ratio calculation
+        const canvasRect = meta.canvas.getBoundingClientRect();
+        const canvasDisplayWidth = canvasRect.width;
+        const canvasDisplayHeight = canvasRect.height;
+
+        // Calculate ratios between PDF page and canvas display dimensions
+        const ratioX = pdfWidth / canvasDisplayWidth;
+        const ratioY = pdfHeight / canvasDisplayHeight;
+
+        // Convert canvas pixel coordinates to PDF points
+        // PDF origin is bottom-left, canvas origin is top-left
+        // Use the Y-flip formula: finalY = pageHeight - (selectedY * ratioY) - (selectedHeight * ratioY)
+        let pdfX = selStartX * ratioX;
+        let pdfY = pdfHeight - (selStartY * ratioY) - (selH * ratioY);
+        let pdfW = selW * ratioX;
+        let pdfH = selH * ratioY;
+
+        // Add internal padding (5 points) to prevent signature from touching page edges
+        const INTERNAL_PADDING = 5;
+        pdfX = Math.max(INTERNAL_PADDING, pdfX);
+        pdfY = Math.max(INTERNAL_PADDING, pdfY);
+        pdfW = Math.min(pdfWidth - pdfX - INTERNAL_PADDING, pdfW);
+        pdfH = Math.min(pdfHeight - pdfY - INTERNAL_PADDING, pdfH);
+
+        // Boundary clamp: ensure coordinates stay within page bounds
+        pdfX = Math.max(0, Math.min(pdfX, pdfWidth - 1));
+        pdfY = Math.max(0, Math.min(pdfY, pdfHeight - 1));
+        pdfW = Math.max(1, Math.min(pdfW, pdfWidth - pdfX));
+        pdfH = Math.max(1, Math.min(pdfH, pdfHeight - pdfY));
+
+        // Debug: Log coordinate mapping for verification
+        console.log('[PDF Signer] Coordinate Mapping:');
+        console.log('  Page dimensions:', { pageWidth: pdfWidth, pageHeight: pdfHeight });
+        console.log('  Canvas dimensions:', { canvasWidth: canvasDisplayWidth, canvasHeight: canvasDisplayHeight });
+        console.log('  Ratios:', { ratioX: ratioX.toFixed(4), ratioY: ratioY.toFixed(4) });
+        console.log('  Selection (canvas px):', { x: selStartX, y: selStartY, w: selW, h: selH });
+        console.log('  Calculated (PDF pt):', { x: pdfX.toFixed(2), y: pdfY.toFixed(2), w: pdfW.toFixed(2), h: pdfH.toFixed(2) });
+
+        // Validation check: verify calculated coordinates are within page bounds
+        if (pdfX + pdfW > pdfWidth || pdfY + pdfH > pdfHeight || pdfX < 0 || pdfY < 0) {
+          console.error('[PDF Signer] Selection out of bounds!');
+          console.error('  Page:', { width: pdfWidth, height: pdfHeight });
+          console.error('  Calculated selection:', { x: pdfX, y: pdfY, w: pdfW, h: pdfH });
+          console.error('  Right edge:', pdfX + pdfW, 'Bottom edge:', pdfY + pdfH);
+          throw new Error('Selection is out of bounds. Please try selecting a smaller area.');
+        }
+
+        // ── 4. Embed Helvetica ───────────────────────────────────
+        const { StandardFonts } = PDFLib;
+        const helvetica = await doc.embedFont(StandardFonts.Helvetica);
+
+        // ── 5. Draw stamp bounding box ───────────────────────────
+        page.drawRectangle({
+          x:           pdfX,
+          y:           pdfY,
+          width:       pdfW,
+          height:      pdfH,
+          color:       PDFLib.rgb(0.97, 0.98, 1.0),
+          borderColor: PDFLib.rgb(0.2, 0.4, 0.85),
+          borderWidth: 1.5,
+        });
+
+        // ── 6. Proportional font sizing ──────────────────────────
+        const lineH    = Math.max(8, pdfH / 4.2);
+        // Use internal padding for text positioning within the stamped area
+        const padX     = Math.max(INTERNAL_PADDING, pdfW * 0.03);
+        const padY     = Math.max(INTERNAL_PADDING, pdfH * 0.05);
+        const nameSize  = Math.min(lineH * 0.85, pdfW * 0.055);
+        const emailSize = Math.min(lineH * 0.72, pdfW * 0.046);
+        const sealSize  = Math.min(lineH * 0.58, pdfW * 0.036);
+
+        const maxSealChars = Math.floor((pdfW - padX * 2) / (sealSize * 0.58));
+        const sealDisplay  = digitalSeal.length > maxSealChars
+          ? digitalSeal.slice(0, maxSealChars - 1) + '\u2026'
+          : digitalSeal;
+
+        const y1 = pdfY + pdfH - padY - nameSize * 0.85;
+        const y2 = pdfY + pdfH - padY - nameSize * 0.85 - lineH * 1.1;
+        const y3 = pdfY + pdfH - padY - nameSize * 0.85 - lineH * 2.1;
+
+        page.drawText(`Name:  ${name}`,        { x: pdfX + padX, y: y1, size: nameSize,  font: helvetica, color: PDFLib.rgb(0.1,  0.1,  0.1)  });
+        page.drawText(`Email: ${email}`,         { x: pdfX + padX, y: y2, size: emailSize, font: helvetica, color: PDFLib.rgb(0.3,  0.3,  0.5) });
+        page.drawText(`Seal:  ${sealDisplay}`,   { x: pdfX + padX, y: y3, size: sealSize,  font: helvetica, color: PDFLib.rgb(0.5,  0.5,  0.75) });
+
+        // ── 7. Embed Digital Seal in PDF metadata ────────────────
+        //    Keywords[0] = Digital Seal (HMAC hex string)
+        //    Title       = "Name — signed <timestamp>"
+        //    Subject     = PIN-derived key hint (for verifier to confirm PIN matched)
+        doc.setProducer('PDF-Signer/3.0 (HMAC-SHA256 PIN Seal)');
+        doc.setKeywords([digitalSeal]);
+        doc.setSubject(`Sealed with PIN`);
+        try { doc.setTitle(`${name} \u2014 signed ${utcStamp}`); } catch (_) {}
+
+        // ── 8. Export & trigger download ─────────────────────────
+        const stampedBytes = await doc.save();
+        const blob = new Blob([stampedBytes], { type: 'application/pdf' });
+        const url  = URL.createObjectURL(blob);
+
+        const anchor       = document.createElement('a');
+        anchor.href        = url;
+        anchor.download    = fileName.replace('.pdf', '_signed.pdf');
+        document.body.appendChild(anchor);
+        anchor.click();
+        document.body.removeChild(anchor);
+        URL.revokeObjectURL(url);
+
+        // ── 9. Generate and display Verification Link ─────────────────────
+        //    URL contains the Digital Seal + PIN as query parameters.
+        //    When verify.html receives these params it pre-fills the PIN
+        //    and auto-runs verification immediately after the PDF is uploaded.
+        const baseUrl   = window.location.href.replace(/\/[^/]*$/, '').replace(/index\.html$/, '') || './';
+        const params    = new URLSearchParams({ seal: digitalSeal, pin, name, email });
+        const verifyUrl = `verify.html?${params.toString()}`;
+
+        verifyLink.href        = verifyUrl;
+        verifyLink.textContent = verifyUrl;
+        verifyLinkBox.classList.add('visible');
+
+        infoEl.textContent =
+          `\u2713 Downloaded: ${anchor.download}\n` +
+          `Page ${selPageIndex + 1} stamped at\n` +
+          `(${pdfX.toFixed(1)}, ${pdfY.toFixed(1)})  ${pdfW.toFixed(1)}\u00d7${pdfH.toFixed(1)} pt\n` +
+          `Timestamp: ${utcStamp}\n` +
+          `${name} \u00b7 ${email}${company ? ' \u00b7 ' + company : ''}`;
+
+        resultBanner.classList.remove('banner-green', 'banner-red');
+        resultBanner.classList.add('banner-green', 'visible');
+        resIcon.textContent  = '\u2713';
+        resLabel.textContent = 'SIGNED';
+        resSub.textContent   = `${anchor.download} \u2014 seal generated.`;
+
+        // Copy-to-clipboard for the verification link
+        copyLinkBtn.onclick = () => {
+          navigator.clipboard.writeText(verifyUrl).then(() => {
+            copyLinkBtn.textContent = '\u2713 Copied!';
+            setTimeout(() => { copyLinkBtn.textContent = 'Copy link'; }, 2000);
+          });
+        };
+      } catch (err) {
+        sealOut.textContent  = `Error: ${err.message}`;
+        infoEl.textContent   = `Error: ${err.message}`;
+        verifyLinkBox.classList.remove('visible');
+        resultBanner.classList.remove('banner-green', 'banner-red');
+        resultBanner.classList.add('banner-red', 'visible');
+        resIcon.textContent  = '\u2717';
+        resLabel.textContent = 'FAILED';
+        resSub.textContent   = err.message;
+      } finally {
+        refreshBtn();
+      }
+    });
+
+    /* ── Clear ────────────────────────────────────────────────── */
+    clearBtn.addEventListener('click', () => {
+      fName.value = ''; fEmail.value = ''; fCompany.value = ''; fPin.value = '';
+      fileInput.value = '';
+      pdfBytes = null; pagesMeta = []; selPageIndex = null;
+      selW = 0; selH = 0; utcStamp = '';
+      selRect.style.display = 'none';
+      resultBanner.classList.remove('visible', 'banner-green', 'banner-red');
+      hintEl.style.display = 'none';
+      sealOut.textContent  = '(PIN + PDF bytes + metadata)';
+      infoEl.textContent   = 'Upload a PDF, fill in all fields, then drag to select a signature region.';
+      signBtn.disabled = true;
+      pageContainer.innerHTML =
+        `<div style='color:#9ca3af;font-size:0.85rem;text-align:center;padding:2rem;'>` +
+        `Upload a PDF to preview all pages.</div>`;
+    });
+  </script>
+
+</body>
+</html>
