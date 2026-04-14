@@ -527,9 +527,9 @@
        VERIFICATION PANEL (SPA) - Hidden by default
        ══════════════════════════════════════════════════════════════════ -->
   <div id='verificationPanel' style='display:none; width:100%; max-width:560px;'>
-    <h1>Verify Signed PDF</h1>
+    <!-- <h1>Verify Signed PDF</h1>
     <p class='subtitle'>Enter the same PIN used at signing to verify the Digital Seal</p>
-
+    -->
     <div class='card'>
       <!-- Target data from URL query string -->
       <div id='urlBanner'
@@ -1100,7 +1100,7 @@
         //    seal = HMAC-SHA256( PIN, metadata fields )
         //    Generate documentId FIRST so it can be used in the hash
         const documentId = crypto.randomUUID();
-        
+
         // Build data object for hashing
         const hashData = {
           name: name,
@@ -1342,7 +1342,7 @@
         //    Producer: indicates this tool was used
         doc.setProducer('PDF-Signer/3.0 (HMAC-SHA256 PIN Seal)');
         doc.setAuthor(name);  // Just the name for standard PDF readers
-        
+
         // Note: JSON-in-Metadata in Keywords field will be set below (section 9)
         // which contains all facts: name, email, organization, jobTitle, timestamp, documentId, seal
 
@@ -1394,10 +1394,10 @@
         // Subject field is a single, uninterrupted string (safer than Keywords)
         // Note: Author field already set above to just the person's name
         doc.setSubject(factsJson);  // JSON string is the source of truth
-        
+
         // Update title to include "Document Signed by " prefix
         try { doc.setTitle(`Document Signed by ${name} \u2014 signed ${utcStamp}`); } catch (_) { }
-        
+
         // Also store in Keywords as fallback (old format)
         doc.setKeywords([digitalSeal, documentId, timestamp]);
 
@@ -1502,7 +1502,7 @@
     /* ── Recalculate seal for verification ─────────────────────────────────── */
     async function recalculateSeal(pin, data) {
       const key = await importPinKey(pin);
-      
+
       // Standardized hash string: EXACT SAME format as signing
       const dataToHash = [
         normalize(data.name),
@@ -1632,19 +1632,19 @@
 
         const title = pdfDoc.getTitle() || '';
         const producer = pdfDoc.getProducer() || '';
-        
+
         // Raw Retrieval: Get Subject field ONLY (ignore Keywords to avoid confusion)
         const subjectRaw = pdfDoc.getSubject() || '';
-        
+
         console.log('[Verify] Subject raw:', subjectRaw);
-        
+
         // Parse from Subject field - THIS IS THE ONLY SOURCE OF TRUTH
         let factsData = null;
-        
+
         if (!subjectRaw || !subjectRaw.trim().startsWith('{')) {
           throw new Error('No valid JSON found in Subject field. File may not have been signed with this tool.');
         }
-        
+
         try {
           factsData = JSON.parse(subjectRaw);
           console.log('[Verify] Successfully parsed JSON from Subject field');
@@ -1653,10 +1653,10 @@
           console.error('[Verify] Subject content:', subjectRaw);
           throw new Error('Invalid JSON in Subject field: ' + e.message);
         }
-        
+
         // Log the extracted metadata object for debugging
         console.log('[Verify] Extracted Metadata Object:', factsData);
-        
+
         // Extract data EXCLUSIVELY from parsed JSON object (source of truth)
         verifyStoredSealVal = factsData.seal;
         verifyParsedName = factsData.name || '(name not in metadata)';
@@ -1675,18 +1675,18 @@
         } catch (e) {
           verifyMetaTime.textContent = verifyParsedTime;
         }
-        
+
         // Show additional metadata from JSON if available
         const extraInfo = [];
         if (verifyParsedOrganization) extraInfo.push(`Organization: ${verifyParsedOrganization}`);
         if (verifyParsedJobTitle) extraInfo.push(`Title: ${verifyParsedJobTitle}`);
         if (verifyParsedDocumentId) extraInfo.push(`Doc ID: ${verifyParsedDocumentId}`);
         verifyMetaProducer.textContent = producer + (extraInfo.length ? ' | ' + extraInfo.join(' | ') : '');
-        
+
         console.log('[Verify] Organization:', verifyParsedOrganization);
         console.log('[Verify] Job Title:', verifyParsedJobTitle);
         console.log('[Verify] Document ID:', verifyParsedDocumentId);
-        
+
         verifyMetaTable.style.display = '';
         verifySealBlock.style.display = '';
         verifyStoredSeal.textContent = verifyStoredSealVal;
@@ -1729,7 +1729,7 @@
         const jobTitle = verifyParsedJobTitle || '';
         const timestamp = verifyParsedTime || '';
         const docId = verifyParsedDocumentId || '';
-        
+
         const verifyData = {
           name: name,
           email: email,
@@ -1738,7 +1738,7 @@
           timestamp: timestamp,
           documentId: docId
         };
-        
+
         const recalculatedSeal = await recalculateSeal(pin, verifyData);
 
         verifyStoredSeal.textContent = verifyStoredSealVal;
