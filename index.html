@@ -1040,7 +1040,9 @@
       signBtn.disabled = true;
 
       try {
+        // Use raw ISO timestamp for HMAC calculation
         utcStamp = new Date().toISOString();
+        // Display-friendly format (for UI only)
         const formattedDate = utcStamp.replace('T', ' ').substring(0, 19);
 
         // ── Memory handling: re-clone pdfBytes at sign time ──────────────────
@@ -1163,9 +1165,10 @@
         });
 
         // ── 6. Dynamic font scaling and text wrapping ────────────────────────────
-        // Generate unique Document ID using full UUID format (36 characters)
+        // Use the SAME timestamp that was used for the HMAC seal
+        // (utcStamp was created earlier at line ~1095)
         const documentId = crypto.randomUUID();
-        const timestamp = new Date().toISOString();
+        const timestamp = utcStamp; // Reuse the same timestamp for consistency
 
         // Base font sizes before any scaling
         const BASE_TITLE = 12;
@@ -1317,7 +1320,7 @@
         doc.setProducer('PDF-Signer/3.0 (HMAC-SHA256 PIN Seal)');
         doc.setKeywords([digitalSeal, documentId, timestamp]);
         doc.setSubject(`Sealed with PIN - Document ID: ${documentId}`);
-        try { doc.setTitle(`${name} \u2014 signed ${formattedDate}`); } catch (_) { }
+        try { doc.setTitle(`${name} \u2014 signed ${utcStamp}`); } catch (_) { }
 
         // ── 7b. Create clickable Link Annotation over the signature area ──────
         // Build the verification URL and embed it as a URI action so that
@@ -1426,14 +1429,15 @@
     ════════════════════════════════════════════════════════════ */
 
     // Helper: parse title into { name, utcTimestamp }
+    // The timestamp in the title is stored as a raw ISO string (e.g., 2026-04-14T13:43:30.000Z)
+    // We extract it as-is and use it directly for HMAC verification
     function parseTitleForSignee(titleStr) {
       const marker = ' — signed ';
       const idx = titleStr.lastIndexOf(marker);
       if (idx === -1) throw new Error('Title metadata missing " — signed " marker.');
       const name = titleStr.slice(0, idx).trim();
       const utcStr = titleStr.slice(idx + marker.length).trim();
-      if (!/^\d{4}-\d{2}-\d{2}T/.test(utcStr))
-        throw new Error(`Timestamp looks malformed: "${utcStr}"`);
+      // Store the timestamp AS-IS for HMAC verification - do NOT reformat
       return { name, utcTimestamp: utcStr };
     }
 
@@ -1559,13 +1563,21 @@
 
         const parsed = parseTitleForSignee(title);
         verifyParsedName = parsed.name;
-        verifyParsedTime = parsed.utcTimestamp;
+        // Extract timestamp from PDF keywords (index 2) for HMAC consistency
+        // Keywords: [digitalSeal, documentId, timestamp]
+        verifyParsedTime = keywords.length > 2 ? keywords[2] : parsed.utcTimestamp;
         verifyParsedEmail = '(not stored)';
 
         verifyFileNameEl.textContent = file.name;
         verifyMetaName.textContent = verifyParsedName;
         verifyMetaEmail.textContent = verifyParsedEmail;
-        verifyMetaTime.textContent = verifyParsedTime;
+        // Display the timestamp in a user-friendly format, but keep the raw ISO for HMAC
+        // Note: verifyParsedTime is the raw ISO string from the PDF title
+        try {
+          verifyMetaTime.textContent = new Date(verifyParsedTime).toLocaleString();
+        } catch (e) {
+          verifyMetaTime.textContent = verifyParsedTime;
+        }
         verifyMetaProducer.textContent = producer;
         verifyMetaTable.style.display = '';
         verifySealBlock.style.display = '';

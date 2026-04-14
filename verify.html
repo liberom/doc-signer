@@ -306,7 +306,7 @@
 
     /* ════════════════════════════════════════════════════════════
        4. Parse Title into (name, utcTimestamp)
-       Format: "Name — signed YYYY-MM-DDTHH:MM:SS.mmmZ"
+       Extracts timestamp as-is from title (raw ISO format stored in PDF)
     ════════════════════════════════════════════════════════════ */
     function parseTitleForSignee(titleStr) {
       const marker = ' \u2014 signed ';
@@ -314,8 +314,7 @@
       if (idx === -1) throw new Error('Title metadata missing " \u2014 signed " marker.');
       const name      = titleStr.slice(0, idx).trim();
       const utcStr    = titleStr.slice(idx + marker.length).trim();
-      if (!/^\d{4}-\d{2}-\d{2}T/.test(utcStr))
-        throw new Error(`Timestamp looks malformed: "${utcStr}"`);
+      // Store the timestamp AS-IS for HMAC verification - do NOT reformat
       return { name, utcTimestamp: utcStr };
     }
 
@@ -459,13 +458,20 @@
 
         const parsed   = parseTitleForSignee(title);
         parsedName     = parsed.name;
-        parsedTime     = parsed.utcTimestamp;
+        // Extract timestamp from PDF keywords (index 2) for HMAC consistency
+        // Keywords: [digitalSeal, documentId, timestamp]
+        parsedTime     = keywords.length > 2 ? keywords[2] : parsed.utcTimestamp;
         parsedEmail    = '(not stored in standard metadata)';
 
         fileNameEl.textContent   = file.name;
         metaName.textContent     = parsedName;
         metaEmail.textContent    = parsedEmail;
-        metaTime.textContent    = parsedTime;
+        // Display timestamp in user-friendly format, but keep raw ISO for HMAC
+        try {
+          metaTime.textContent = new Date(parsedTime).toLocaleString();
+        } catch (e) {
+          metaTime.textContent = parsedTime;
+        }
         metaProducer.textContent = producer;
 
         metaTable.style.display = '';
