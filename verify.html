@@ -606,13 +606,21 @@
         console.log('Verification PIN used:', pin);
         
         // Build data object from parsed JSON (source of truth)
+        // Extract all fields individually to avoid any scoping issues
+        const name = parsedName || '';
+        const email = parsedEmail || '';
+        const organization = parsedOrganization || '';
+        const jobTitle = parsedJobTitle || '';
+        const timestamp = parsedTime || '';
+        const docId = parsedDocumentId || '';
+        
         const verifyData = {
-          name: parsedName || '',
-          email: parsedEmail || '',
-          organization: parsedOrganization || '',
-          jobTitle: parsedJobTitle || '',
-          timestamp: parsedTime || '',
-          documentId: parsedDocumentId || ''
+          name: name,
+          email: email,
+          organization: organization,
+          jobTitle: jobTitle,
+          timestamp: timestamp,
+          documentId: docId
         };
 
         const recalculatedSeal = await recalculateSeal(pin, verifyData);
