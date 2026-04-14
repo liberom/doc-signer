@@ -692,6 +692,8 @@
       payload.set(textPart, 0);
       payload.set(new Uint8Array(pdfBytes), textPart.byteLength);
 
+      console.log('String being hashed (Signing):', payload);
+
       // Sign with HMAC-SHA256
       const signatureBuf = await crypto.subtle.sign('HMAC', key, payload);
 
@@ -1087,6 +1089,7 @@
         // ── 1. Generate Digital Seal ───────────────────────────────────────────
         //    seal = HMAC-SHA256( PIN, PDF bytes + name + email + timestamp )
         const digitalSeal = await generateDigitalSeal(pin, name, email, utcStamp, cloneForHashing);
+        console.log('Generated Seal:', digitalSeal);
         sealOut.textContent = digitalSeal;
 
         // ── 2. Load PDF — use the second independent clone ─────────────────

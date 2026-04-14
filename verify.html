@@ -300,6 +300,8 @@
       payload.set(textPart, 0);
       payload.set(new Uint8Array(pdfBytes), textPart.byteLength);
 
+      console.log('String being hashed (Verification):', payload);
+
       const signatureBuf = await crypto.subtle.sign('HMAC', key, payload);
       return bufferToHex(signatureBuf);
     }
@@ -548,6 +550,8 @@
         const cloneForSeal = sourceBuffer.slice(pdfByteOffset, pdfByteOffset + pdfByteLength);
 
         console.log('[Verify] Recalculating seal with cloneForSeal byteLength:', cloneForSeal.byteLength);
+        console.log('Original Seal in PDF:', storedSeal);
+        console.log('Verification PIN used:', pin);
 
         const recalculatedSeal = await recalculateSeal(
           pin,
