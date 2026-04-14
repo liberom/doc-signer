@@ -1,11 +1,18 @@
 <!DOCTYPE html>
 <html lang='en'>
+
 <head>
   <meta charset='UTF-8' />
   <meta name='viewport' content='width=device-width, initial-scale=1.0' />
   <title>PDF Signer — PIN Seal</title>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
     body {
       font-family: system-ui, -apple-system, sans-serif;
@@ -18,8 +25,16 @@
       padding: 1.5rem 1rem 3rem;
     }
 
-    h1 { font-size: 1.55rem; margin-bottom: 0.3rem; }
-    .subtitle { color: #555; margin-bottom: 1.6rem; font-size: 0.9rem; }
+    h1 {
+      font-size: 1.55rem;
+      margin-bottom: 0.3rem;
+    }
+
+    .subtitle {
+      color: #555;
+      margin-bottom: 1.6rem;
+      font-size: 0.9rem;
+    }
 
     .layout {
       display: flex;
@@ -77,12 +92,15 @@
 
     .drag-overlay {
       position: absolute;
-      top: 0; left: 0; right: 0; bottom: 0;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
       border-radius: 4px;
       z-index: 10;
     }
 
-    #selRect {
+    .sel-rect {
       position: absolute;
       background: rgba(37, 99, 235, 0.15);
       border: 2px dashed rgba(37, 99, 235, 0.9);
@@ -94,8 +112,9 @@
 
     .page-badge {
       position: absolute;
-      top: 6px; left: 8px;
-      background: rgba(0,0,0,0.55);
+      top: 6px;
+      left: 8px;
+      background: rgba(0, 0, 0, 0.55);
       color: #fff;
       font-size: 0.7rem;
       font-weight: 700;
@@ -112,7 +131,7 @@
       background: #fff;
       border-radius: 14px;
       padding: 1.8rem;
-      box-shadow: 0 2px 14px rgba(0,0,0,0.09);
+      box-shadow: 0 2px 14px rgba(0, 0, 0, 0.09);
       display: flex;
       flex-direction: column;
       gap: 1rem;
@@ -144,14 +163,23 @@
       outline: none;
       transition: border-color 0.15s;
     }
-    input:focus { border-color: #2563eb; }
-    input[type='file'] { cursor: pointer; }
+
+    input:focus {
+      border-color: #2563eb;
+    }
+
+    input[type='file'] {
+      cursor: pointer;
+    }
 
     .pin-field {
       background: #fffbf0;
       border-color: #f59e0b;
     }
-    .pin-field:focus { border-color: #d97706; }
+
+    .pin-field:focus {
+      border-color: #d97706;
+    }
 
     .pin-hint {
       font-size: 0.72rem;
@@ -160,7 +188,10 @@
       margin-top: -0.1rem;
     }
 
-    .btn-row { display: flex; gap: 0.6rem; }
+    .btn-row {
+      display: flex;
+      gap: 0.6rem;
+    }
 
     button {
       background: #2563eb;
@@ -174,10 +205,23 @@
       transition: background 0.15s;
       flex: 1;
     }
-    button:hover:not(:disabled) { background: #1d4ed8; }
-    button:disabled { background: #93c5fd; cursor: not-allowed; }
-    button.secondary { background: #6b7280; }
-    button.secondary:hover:not(:disabled) { background: #4b5563; }
+
+    button:hover:not(:disabled) {
+      background: #1d4ed8;
+    }
+
+    button:disabled {
+      background: #93c5fd;
+      cursor: not-allowed;
+    }
+
+    button.secondary {
+      background: #6b7280;
+    }
+
+    button.secondary:hover:not(:disabled) {
+      background: #4b5563;
+    }
 
     #info {
       font-size: 0.78rem;
@@ -190,6 +234,7 @@
       white-space: pre-wrap;
       word-break: break-all;
       min-height: 2.8rem;
+      display: none;
     }
 
     #sealOut {
@@ -204,9 +249,16 @@
       min-height: 2.5rem;
     }
 
-    .label-seal { font-size: 0.78rem; font-weight: 700; color: #065f46; }
+    .label-seal {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #065f46;
+    }
 
-    .divider { border: none; border-top: 1px solid #e5e7eb; }
+    .divider {
+      border: none;
+      border-top: 1px solid #e5e7eb;
+    }
 
     .hint {
       font-size: 0.78rem;
@@ -215,7 +267,11 @@
       align-items: center;
       gap: 0.35rem;
     }
-    .hint::before { content: '\2196'; font-size: 1rem; }
+
+    .hint::before {
+      content: '\2196';
+      font-size: 1rem;
+    }
 
     #resultBanner {
       display: none;
@@ -227,23 +283,64 @@
       gap: 0.35rem;
       animation: bannerPop 0.3s ease-out;
     }
-    #resultBanner.visible { display: flex; }
-    @keyframes bannerPop {
-      from { transform: scale(0.85); opacity: 0; }
-      to   { transform: scale(1);   opacity: 1; }
-    }
-    .banner-green { background: #f0fdf4; border: 2px solid #16a34a; }
-    .banner-red   { background: #fef2f2; border: 2px solid #dc2626; }
 
-    .result-icon  { font-size: 2.2rem; }
-    .result-label { font-size: 1.2rem; font-weight: 800; }
-    .result-sub   { font-size: 0.78rem; opacity: 0.85; }
+    #resultBanner.visible {
+      display: flex;
+    }
+
+    @keyframes bannerPop {
+      from {
+        transform: scale(0.85);
+        opacity: 0;
+      }
+
+      to {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    .banner-green {
+      background: #f0fdf4;
+      border: 2px solid #16a34a;
+    }
+
+    .banner-red {
+      background: #fef2f2;
+      border: 2px solid #dc2626;
+    }
+
+    .result-icon {
+      font-size: 2.2rem;
+    }
+
+    .result-label {
+      font-size: 1.2rem;
+      font-weight: 800;
+    }
+
+    .result-sub {
+      font-size: 0.78rem;
+      opacity: 0.85;
+    }
+
     .banner-green .result-icon,
-    .banner-green .result-label { color: #16a34a; }
-    .banner-green .result-sub    { color: #15803d; }
+    .banner-green .result-label {
+      color: #16a34a;
+    }
+
+    .banner-green .result-sub {
+      color: #15803d;
+    }
+
     .banner-red .result-icon,
-    .banner-red .result-label { color: #dc2626; }
-    .banner-red .result-sub    { color: #b91c1c; }
+    .banner-red .result-label {
+      color: #dc2626;
+    }
+
+    .banner-red .result-sub {
+      color: #b91c1c;
+    }
 
     /* ── Verification link box ─────────────────────────────── */
     #verifyLinkBox {
@@ -255,8 +352,16 @@
       font-size: 0.78rem;
       color: #1e40af;
     }
-    #verifyLinkBox.visible { display: block; }
-    #verifyLinkBox strong { display: block; margin-bottom: 0.35rem; }
+
+    #verifyLinkBox.visible {
+      display: block;
+    }
+
+    #verifyLinkBox strong {
+      display: block;
+      margin-bottom: 0.35rem;
+    }
+
     #verifyLink {
       font-family: monospace;
       font-size: 0.72rem;
@@ -271,7 +376,11 @@
       cursor: pointer;
       text-decoration: none;
     }
-    #verifyLink:hover { background: #dbeafe; }
+
+    #verifyLink:hover {
+      background: #dbeafe;
+    }
+
     .copy-btn {
       display: inline-block;
       margin-top: 0.4rem;
@@ -280,8 +389,54 @@
       cursor: pointer;
       text-decoration: underline;
     }
+
+    /* ── Drag & Drop Upload Zone ─────────────────────────────── */
+    .drop-zone {
+      position: relative;
+      border: 2px dashed #d1d5db;
+      border-radius: 10px;
+      padding: 1.5rem 1rem;
+      text-align: center;
+      background: #fafafa;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    .drop-zone:hover {
+      border-color: #2563eb;
+      background: #eff6ff;
+    }
+
+    .drop-zone.dragover {
+      border-color: #2563eb;
+      background: #dbeafe;
+      border-style: solid;
+    }
+
+    .drop-zone .drop-icon {
+      font-size: 2rem;
+      display: block;
+      margin-bottom: 0.5rem;
+    }
+
+    .drop-zone .drop-text {
+      font-size: 0.85rem;
+      color: #6b7280;
+      margin: 0;
+    }
+
+    .drop-zone input[type='file'] {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+    }
   </style>
 </head>
+
 <body>
 
   <h1>PDF Signer</h1>
@@ -300,7 +455,6 @@
       <div class='hint' id='hintEl' style='display:none;'>
         Click and drag on any page to select the signature area
       </div>
-      <div id='selRect'></div>
     </div>
 
     <!-- ── Right: Form card ─────────────────────────────────── -->
@@ -317,8 +471,12 @@
         <input type='email' id='fEmail' placeholder='jane@example.com' autocomplete='off' />
       </label>
       <label>
-        Company <span style='font-weight:400;color:#9ca3af;'>(optional)</span>
-        <input type='text' id='fCompany' placeholder='Acme Corp' autocomplete='off' />
+        Organization <span style='font-weight:400;color:#9ca3af;'>(optional)</span>
+        <input type='text' id='fOrganization' placeholder='Acme Corp' autocomplete='off' />
+      </label>
+      <label>
+        Job Title <span style='font-weight:400;color:#9ca3af;'>(optional)</span>
+        <input type='text' id='fJobTitle' placeholder='Software Engineer' autocomplete='off' />
       </label>
 
       <!-- PIN — required for signing -->
@@ -331,10 +489,13 @@
       <hr class='divider' />
 
       <div class='section-title'>PDF File</div>
-      <label>
+      <div id='dropZone' class='drop-zone'>
+        <span class='drop-icon'>📄</span>
+        <p class='drop-text'>Drag & drop PDF here or click to browse</p>
         <input type='file' id='fileInput' accept='.pdf,application/pdf' />
-      </label>
+      </div>
 
+      <!-- Coordinate info is hidden from UI -->
       <div id='info'>Upload a PDF, fill in all fields, then drag to select a signature region.</div>
 
       <div class='btn-row'>
@@ -362,6 +523,110 @@
     </div>
   </div>
 
+  <!-- ══════════════════════════════════════════════════════════════════
+       VERIFICATION PANEL (SPA) - Hidden by default
+       ══════════════════════════════════════════════════════════════════ -->
+  <div id='verificationPanel' style='display:none; width:100%; max-width:560px;'>
+    <h1>Verify Signed PDF</h1>
+    <p class='subtitle'>Enter the same PIN used at signing to verify the Digital Seal</p>
+
+    <div class='card'>
+      <!-- Target data from URL query string -->
+      <div id='urlBanner'
+        style='display:none; background:#fffbeb; border:1.5px solid #f59e0b; border-radius:8px; padding:0.75rem 1rem; font-size:0.8rem; color:#92400e; line-height:1.65; word-break:break-all;'>
+        <strong style='display:block; margin-bottom:0.3rem; color:#78350f;'>Target Verification Data (from URL)</strong>
+        <div id='urlData'></div>
+      </div>
+
+      <!-- Upload zone -->
+      <div class='upload-zone' id='verifyUploadZone'
+        style='border:2px dashed #c7d2fe; border-radius:10px; padding:1.8rem 1.5rem; text-align:center; cursor:pointer; transition:border-color 0.2s, background 0.2s;'>
+        <span style='font-size:2.4rem; display:block; margin-bottom:0.3rem;'>📄</span>
+        <strong>Click or drag a signed PDF here</strong>
+        <p id='verifyFileNameEl' style='font-size:0.88rem; color:#6b7280; margin-top:0.4rem;'>No file selected</p>
+      </div>
+      <input type='file' id='verifyFileInput' accept='.pdf,application/pdf' style='display:none;' />
+
+      <hr class='divider' />
+      <div style='font-size:0.78rem; font-weight:700; color:#374151; letter-spacing:0.04em;'>Extracted Metadata</div>
+
+      <table id='verifyMetaTable' style='display:none; width:100%; border-collapse:collapse; font-size:0.84rem;'>
+        <tbody>
+          <tr>
+            <th
+              style='text-align:left; color:#6b7280; font-weight:600; padding:0.28rem 0.5rem 0.28rem 0; border-bottom:1px solid #e5e7eb; width:40%;'>
+              Signer Name</th>
+            <td id='verifyMetaName'>—</td>
+          </tr>
+          <tr>
+            <th
+              style='text-align:left; color:#6b7280; font-weight:600; padding:0.28rem 0.5rem 0.28rem 0; border-bottom:1px solid #e5e7eb;'>
+              Email</th>
+            <td id='verifyMetaEmail'>—</td>
+          </tr>
+          <tr>
+            <th
+              style='text-align:left; color:#6b7280; font-weight:600; padding:0.28rem 0.5rem 0.28rem 0; border-bottom:1px solid #e5e7eb;'>
+              Timestamp</th>
+            <td id='verifyMetaTime'>—</td>
+          </tr>
+          <tr>
+            <th
+              style='text-align:left; color:#6b7280; font-weight:600; padding:0.28rem 0.5rem 0.28rem 0; border-bottom:1px solid #e5e7eb;'>
+              Producer</th>
+            <td id='verifyMetaProducer'>—</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- PIN input -->
+      <label style='gap:0.3rem;'>
+        Signer PIN
+        <input type='password' id='verifyPin' class='pin-field'
+          style='background:#fffbf0; border-color:#f59e0b; padding:0.5rem 0.8rem; font-size:0.92rem; outline:none; transition:border-color 0.15s; width:100%;'
+          placeholder='Enter the same PIN used to sign' autocomplete='off' />
+        <span class='pin-hint'>Required to re-calculate the Digital Seal</span>
+      </label>
+
+      <!-- Seal comparison -->
+      <div id='verifySealBlock' style='display:none;'>
+        <div
+          style='font-size:0.72rem; color:#374151; background:#f8fafc; border:1px solid #e5e7eb; border-radius:8px; padding:0.7rem 1rem; word-break:break-all; line-height:1.65;'>
+          <div style='display:flex; gap:0.5rem; align-items:baseline; margin:0.25rem 0;'>
+            <span style='font-weight:700; min-width:110px;'>Stored Seal</span>
+            <span id='verifyStoredSeal' style='word-break:break-all;'>—</span>
+            <span id='verifyMatchMeta' style='color:#9ca3af;'>—</span>
+          </div>
+          <div style='display:flex; gap:0.5rem; align-items:baseline; margin:0.25rem 0;'>
+            <span style='font-weight:700; min-width:110px;'>Recalc. Seal</span>
+            <span id='verifyCalcSeal' style='word-break:break-all;'>—</span>
+            <span id='verifyMatchFile' style='color:#9ca3af;'>—</span>
+          </div>
+          <div id='verifyUrlSealRow'
+            style='display:none; display:flex; gap:0.5rem; align-items:baseline; margin:0.25rem 0;'>
+            <span style='font-weight:700; min-width:110px;'>URL Param Seal</span>
+            <span id='verifyUrlSeal' style='word-break:break-all;'>—</span>
+            <span id='verifyMatchUrl' style='color:#9ca3af;'>—</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Result -->
+      <div id='verifyResultBanner'
+        style='display:none; border-radius:12px; padding:1.2rem; text-align:center; flex-direction:column; align-items:center; gap:0.4rem;'>
+        <div style='font-size:2.8rem;' id='verifyResultIcon'>✓</div>
+        <div style='font-size:1.5rem; font-weight:800; letter-spacing:0.06em;' id='verifyResultLabel'>VERIFIED</div>
+        <div style='font-size:0.83rem; opacity:0.85;' id='verifyResultSub'></div>
+      </div>
+
+      <!-- Actions -->
+      <div class='btn-row'>
+        <button id='verifyBtn' disabled>Verify Integrity</button>
+        <button id='verifyClearBtn' class='secondary'>Clear</button>
+      </div>
+    </div>
+  </div>
+
   <!-- pdf.js renders pages; pdf-lib modifies PDF -->
   <script src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js'></script>
   <script src='https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js'></script>
@@ -380,6 +645,18 @@
        The PIN never leaves the browser and is never stored.
        Only the seal (hex signature) is embedded in the PDF metadata.
     ════════════════════════════════════════════════════════════ */
+
+    // ═══════════════════════════════════════════════════════════
+    // SPA ROUTING: Check for verification parameters
+    // ═══════════════════════════════════════════════════════════
+    const urlParams = new URLSearchParams(window.location.search);
+    const targetSeal = urlParams.get('seal') || '';
+    const targetName = urlParams.get('name') || '';
+    const targetEmail = urlParams.get('email') || '';
+    const targetPin = urlParams.get('pin') || '';
+
+    // If URL has verification params, hide signing form and show verification panel
+    const isVerificationMode = targetSeal || targetPin || targetName || targetEmail;
 
     // Convert ArrayBuffer to lowercase hex string
     function bufferToHex(buffer) {
@@ -410,8 +687,8 @@
 
       // Build the signing payload: PDF bytes + UTF-8 Name + UTF-8 Email + UTF-8 Timestamp
       const textEncoder = new TextEncoder();
-      const textPart    = textEncoder.encode(name + email + utcTimestamp);
-      const payload     = new Uint8Array(textPart.byteLength + pdfBytes.byteLength);
+      const textPart = textEncoder.encode(name + email + utcTimestamp);
+      const payload = new Uint8Array(textPart.byteLength + pdfBytes.byteLength);
       payload.set(textPart, 0);
       payload.set(new Uint8Array(pdfBytes), textPart.byteLength);
 
@@ -429,14 +706,14 @@
     async function renderAllPages(pdfData, container) {
       container.querySelectorAll('.page-wrapper').forEach(el => el.remove());
 
-      const doc   = await pdfjsLib.getDocument({ data: pdfData }).promise;
+      const doc = await pdfjsLib.getDocument({ data: pdfData }).promise;
       const pages = [];
 
       for (let i = 1; i <= doc.numPages; i++) {
-        const page   = await doc.getPage(i);
-        const vp     = page.getViewport({ scale: 1.0 });
+        const page = await doc.getPage(i);
+        const vp = page.getViewport({ scale: 1.0 });
         const canvas = document.createElement('canvas');
-        canvas.width  = vp.width;
+        canvas.width = vp.width;
         canvas.height = vp.height;
         canvas.className = 'page-canvas';
 
@@ -450,7 +727,7 @@
         wrapper.setAttribute('data-page-index', i - 1);
 
         const badge = document.createElement('div');
-        badge.className   = 'page-badge';
+        badge.className = 'page-badge';
         badge.textContent = `Page ${i}`;
 
         const overlay = document.createElement('div');
@@ -465,9 +742,9 @@
         pages.push({
           pageIndex: i - 1,
           canvas,
-          pdfWidth:  vp.width,
+          pdfWidth: vp.width,
           pdfHeight: vp.height,
-          pageNum:   i,
+          pageNum: i,
         });
       }
 
@@ -479,7 +756,7 @@
     ════════════════════════════════════════════════════════════ */
     (function init() {
       if (typeof pdfjsLib === 'undefined') throw new Error('pdf.js not found');
-      if (typeof PDFLib === 'undefined')   throw new Error('pdf-lib not found');
+      if (typeof PDFLib === 'undefined') throw new Error('pdf-lib not found');
       pdfjsLib.GlobalWorkerOptions.workerSrc =
         'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
     }());
@@ -489,40 +766,61 @@
         throw new Error('pdf-lib missing expected exports');
     }());
 
+    // ═══════════════════════════════════════════════════════════
+    // VIEW TOGGLING: Show verification panel or signing form
+    // ═══════════════════════════════════════════════════════════
+    const signingPanel = document.querySelector('.layout'); // Original signing layout
+    const verificationPanel = document.getElementById('verificationPanel');
+
+    if (isVerificationMode) {
+      // Hide signing form, show verification panel
+      if (signingPanel) signingPanel.style.display = 'none';
+      verificationPanel.style.display = 'block';
+      document.querySelector('h1').textContent = 'Verify Signed PDF';
+      document.querySelector('.subtitle').textContent = 'Enter the same PIN used at signing to verify the Digital Seal';
+    } else {
+      // Show signing form, hide verification panel
+      verificationPanel.style.display = 'none';
+    }
+
     /* ════════════════════════════════════════════════════════════
        UI references
     ════════════════════════════════════════════════════════════ */
-    const fName        = document.getElementById('fName');
-    const fEmail       = document.getElementById('fEmail');
-    const fCompany     = document.getElementById('fCompany');
-    const fPin         = document.getElementById('fPin');
-    const fileInput    = document.getElementById('fileInput');
-    const signBtn      = document.getElementById('signBtn');
-    const clearBtn     = document.getElementById('clearBtn');
+    const fName = document.getElementById('fName');
+    const fEmail = document.getElementById('fEmail');
+    const fCompany = document.getElementById('fCompany');
+    const fPin = document.getElementById('fPin');
+    const fOrganization = document.getElementById('fOrganization');
+    const fJobTitle = document.getElementById('fJobTitle');
+    const fileInput = document.getElementById('fileInput');
+    const signBtn = document.getElementById('signBtn');
+    const clearBtn = document.getElementById('clearBtn');
     const pageContainer = document.getElementById('pageContainer');
-    const hintEl       = document.getElementById('hintEl');
-    const infoEl       = document.getElementById('info');
-    const sealOut      = document.getElementById('sealOut');
+    const hintEl = document.getElementById('hintEl');
+    const infoEl = document.getElementById('info');
+    const sealOut = document.getElementById('sealOut');
     const resultBanner = document.getElementById('resultBanner');
-    const resIcon      = document.getElementById('resIcon');
-    const resLabel     = document.getElementById('resLabel');
-    const resSub       = document.getElementById('resSub');
-    const selRect      = document.getElementById('selRect');
+    const resIcon = document.getElementById('resIcon');
+    const resLabel = document.getElementById('resLabel');
+    const resSub = document.getElementById('resSub');
+    const verifyLinkBox = document.getElementById('verifyLinkBox');
+    const verifyLink = document.getElementById('verifyLink');
+    const copyLinkBtn = document.getElementById('copyLinkBtn');
 
-    let pdfBytes     = null;
-    let fileName     = 'document.pdf';
-    let pagesMeta    = [];
-    let utcStamp     = '';
+    let pdfBytes = null;
+    let fileName = 'document.pdf';
+    let pagesMeta = [];
+    let utcStamp = '';
 
     // Selection stored in CANVAS PX; scaled to PDF pt only at sign time
     let selPageIndex = null;
-    let selStartX    = 0;
-    let selStartY    = 0;
-    let selW         = 0;
-    let selH         = 0;
+    let selStartX = 0;
+    let selStartY = 0;
+    let selW = 0;
+    let selH = 0;
 
-    let isDragging   = false;
-    let dragOverlay  = null;
+    let isDragging = false;
+    let dragOverlay = null;
 
     /* ── Button guard: all four fields required before signing ─── */
     function refreshBtn() {
@@ -535,38 +833,56 @@
       );
     }
 
-    [fName, fEmail, fCompany, fPin].forEach(el =>
+    [fName, fEmail, fOrganization, fJobTitle, fPin].forEach(el =>
       el.addEventListener('input', refreshBtn)
     );
 
     /* ── Visual selection rectangle ──────────────────────────── */
-    function updateSelRect(wrapper, startX, startY, curX, curY) {
-      const rect = wrapper.getBoundingClientRect();
-      const l    = Math.min(startX, curX) - rect.left;
-      const t    = Math.min(startY, curY) - rect.top;
-      const w    = Math.abs(curX - startX);
-      const h    = Math.abs(curY - startY);
-      selRect.style.left   = l + 'px';
-      selRect.style.top    = t + 'px';
-      selRect.style.width  = w + 'px';
+    // Get or create a selRect element inside the given wrapper
+    function getSelRect(wrapper) {
+      let el = wrapper.querySelector('.sel-rect');
+      if (!el) {
+        el = document.createElement('div');
+        el.className = 'sel-rect';
+        wrapper.appendChild(el);
+      }
+      return el;
+    }
+
+    function updateSelRect(wrapper, canvasStartX, canvasStartY, canvasCurX, canvasCurY) {
+      const selRect = getSelRect(wrapper);
+      const l = Math.min(canvasStartX, canvasCurX);
+      const t = Math.min(canvasStartY, canvasCurY);
+      const w = Math.abs(canvasCurX - canvasStartX);
+      const h = Math.abs(canvasCurY - canvasStartY);
+      selRect.style.left = l + 'px';
+      selRect.style.top = t + 'px';
+      selRect.style.width = w + 'px';
       selRect.style.height = h + 'px';
       selRect.style.display = 'block';
+    }
+
+    function hideSelRect(wrapper) {
+      const el = wrapper ? wrapper.querySelector('.sel-rect') : null;
+      if (el) el.style.display = 'none';
+      // Also hide any other sel-rects across all wrappers
+      document.querySelectorAll('.sel-rect').forEach(r => r.style.display = 'none');
     }
 
     /* ── Drag handlers ────────────────────────────────────────── */
     function onMouseDown(e) {
       if (!pdfBytes) return;
       e.preventDefault();
-      const overlay  = e.currentTarget;
-      const wrapper  = overlay.parentElement;
-      const canvas   = wrapper.querySelector('canvas');
-      const rect     = canvas.getBoundingClientRect();
-      isDragging     = true;
-      dragOverlay    = overlay;
-      selStartX      = e.clientX - rect.left;
-      selStartY      = e.clientY - rect.top;
-      selPageIndex   = parseInt(overlay.getAttribute('data-page-index'), 10);
-      selRect.style.display = 'none';
+      const overlay = e.currentTarget;
+      const wrapper = overlay.parentElement;
+      const canvas = wrapper.querySelector('canvas');
+      const rect = canvas.getBoundingClientRect();
+      isDragging = true;
+      dragOverlay = overlay;
+      selStartX = e.clientX - rect.left;
+      selStartY = e.clientY - rect.top;
+      selPageIndex = parseInt(overlay.getAttribute('data-page-index'), 10);
+      hideSelRect(wrapper);
       selW = 0; selH = 0;
     }
 
@@ -574,8 +890,8 @@
       if (!isDragging || !dragOverlay) return;
       e.preventDefault();
       const wrapper = dragOverlay.parentElement;
-      const canvas  = wrapper.querySelector('canvas');
-      const rect    = canvas.getBoundingClientRect();
+      const canvas = wrapper.querySelector('canvas');
+      const rect = canvas.getBoundingClientRect();
       updateSelRect(wrapper, selStartX, selStartY,
         e.clientX - rect.left, e.clientY - rect.top);
     }
@@ -584,16 +900,16 @@
       if (!isDragging || !dragOverlay) return;
       e.preventDefault();
       const wrapper = dragOverlay.parentElement;
-      const canvas  = wrapper.querySelector('canvas');
-      const endX    = e.clientX - canvas.getBoundingClientRect().left;
-      const endY    = e.clientY - canvas.getBoundingClientRect().top;
-      const meta    = pagesMeta.find(p => p.pageIndex === selPageIndex);
+      const canvas = wrapper.querySelector('canvas');
+      const endX = e.clientX - canvas.getBoundingClientRect().left;
+      const endY = e.clientY - canvas.getBoundingClientRect().top;
+      const meta = pagesMeta.find(p => p.pageIndex === selPageIndex);
       if (!meta) { isDragging = false; dragOverlay = null; return; }
 
       selStartX = Math.min(selStartX, endX);
       selStartY = Math.min(selStartY, endY);
-      selW      = Math.abs(endX - selStartX);
-      selH      = Math.abs(endY - selStartY);
+      selW = Math.abs(endX - selStartX);
+      selH = Math.abs(endY - selStartY);
 
       updateSelRect(wrapper, selStartX, selStartY, selStartX + selW, selStartY + selH);
 
@@ -604,10 +920,10 @@
       const ratioY = meta.pdfHeight / canvasDisplayHeight;
 
       // Use the same Y-flip formula as the signing logic
-      const pdfX   = selStartX * ratioX;
-      const pdfY   = meta.pdfHeight - (selStartY * ratioY) - (selH * ratioY);
-      const pdfW   = selW * ratioX;
-      const pdfH   = selH * ratioY;
+      const pdfX = selStartX * ratioX;
+      const pdfY = meta.pdfHeight - (selStartY * ratioY) - (selH * ratioY);
+      const pdfW = selW * ratioX;
+      const pdfH = selH * ratioY;
 
       infoEl.textContent =
         `File: ${fileName}\n` +
@@ -624,17 +940,49 @@
       refreshBtn();
     }
 
+    /* ── Drag & Drop Upload Zone ─────────────────────────────── */
+    const dropZone = document.getElementById('dropZone');
+
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dropZone.classList.add('dragover');
+    });
+
+    dropZone.addEventListener('dragleave', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dropZone.classList.remove('dragover');
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dropZone.classList.remove('dragover');
+
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
+        const file = files[0];
+        if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+          fileInput.files = files;
+          // Trigger the change event manually
+          const event = new Event('change', { bubbles: true });
+          fileInput.dispatchEvent(event);
+        }
+      }
+    });
+
     /* ── File selected → render all pages ────────────────────── */
     fileInput.addEventListener('change', async (e) => {
       const file = e.target.files[0];
       if (!file) return;
 
-      pdfBytes     = null;
+      pdfBytes = null;
       selPageIndex = null;
       selW = 0; selH = 0;
-      pagesMeta    = [];
+      pagesMeta = [];
       signBtn.disabled = true;
-      selRect.style.display = 'none';
+      hideSelRect(null);
       verifyLinkBox.classList.remove('visible');
       resultBanner.classList.remove('visible', 'banner-green', 'banner-red');
       infoEl.textContent = 'Loading…';
@@ -651,7 +999,7 @@
         //   Clone A → pdf.js  (renderAllPages — needs raw bytes)
         //   Clone B → kept as pdfBytes  (signBtn reads this; cloned via .slice(0) again at sign time)
         const bufferForPdfJs = originalBuffer.slice(0);    // Clone A — for rendering
-        pdfBytes             = new Uint8Array(originalBuffer.slice(0));    // Clone B — cached in memory as Uint8Array
+        pdfBytes = new Uint8Array(originalBuffer.slice(0));    // Clone B — cached in memory as Uint8Array
 
         fileName = file.name.replace(/\//g, '-') || 'document.pdf';
 
@@ -661,7 +1009,7 @@
         overlays.forEach(ov => {
           ov.addEventListener('mousedown', onMouseDown);
           ov.addEventListener('mousemove', onMouseMove);
-          ov.addEventListener('mouseup',   onMouseUp);
+          ov.addEventListener('mouseup', onMouseUp);
           ov.addEventListener('mouseleave', onMouseUp);
         });
 
@@ -683,15 +1031,17 @@
     signBtn.addEventListener('click', async () => {
       if (!pdfBytes || selPageIndex === null) return;
 
-      const name    = fName.value.trim();
-      const email   = fEmail.value.trim();
-      const company = fCompany.value.trim();
-      const pin     = fPin.value.trim();
+      const name = fName.value.trim();
+      const email = fEmail.value.trim();
+      const organization = fOrganization.value.trim();
+      const jobTitle = fJobTitle.value.trim();
+      const pin = fPin.value.trim();
 
       signBtn.disabled = true;
 
       try {
         utcStamp = new Date().toISOString();
+        const formattedDate = utcStamp.replace('T', ' ').substring(0, 19);
 
         // ── Memory handling: re-clone pdfBytes at sign time ──────────────────
         // pdfBytes was set when the file was loaded as a Uint8Array (clone of the
@@ -709,8 +1059,8 @@
         // Uint8Array.buffer may be a sub-range of the underlying ArrayBuffer if the
         // engine created a shared backing store, so we slice from 0 to .length.
         const pdfArrayBuffer = pdfBytes.buffer;
-        const pdfByteOffset  = pdfBytes.byteOffset;
-        const pdfByteLength   = pdfBytes.length;
+        const pdfByteOffset = pdfBytes.byteOffset;
+        const pdfByteLength = pdfBytes.length;
 
         // Verify we have a valid ArrayBuffer before slicing
         if (!pdfArrayBuffer) {
@@ -719,12 +1069,12 @@
 
         // Create two fully-independent ArrayBuffer clones.
         const cloneForHashing = pdfArrayBuffer.slice(pdfByteOffset, pdfByteOffset + pdfByteLength);
-        const cloneForPdfLib  = pdfArrayBuffer.slice(pdfByteOffset, pdfByteOffset + pdfByteLength);
+        const cloneForPdfLib = pdfArrayBuffer.slice(pdfByteOffset, pdfByteOffset + pdfByteLength);
 
         // Log buffer info to console for debugging.
         console.log('[PDF Signer] pdfBytes buffer info:', {
-          byteOffset:  pdfByteOffset,
-          length:      pdfByteLength,
+          byteOffset: pdfByteOffset,
+          length: pdfByteLength,
           totalBuffer: pdfArrayBuffer.byteLength,
           clonesReady: 'two independent clones created',
         });
@@ -738,9 +1088,9 @@
         sealOut.textContent = digitalSeal;
 
         // ── 2. Load PDF — use the second independent clone ─────────────────
-        const doc  = await PDFLib.PDFDocument.load(cloneForPdfLib);
+        const doc = await PDFLib.PDFDocument.load(cloneForPdfLib);
         const page = doc.getPage(selPageIndex);
-        const pdfWidth  = page.getWidth();
+        const pdfWidth = page.getWidth();
         const pdfHeight = page.getHeight();
 
 
@@ -796,106 +1146,259 @@
           throw new Error('Selection is out of bounds. Please try selecting a smaller area.');
         }
 
-        // ── 4. Embed Helvetica ───────────────────────────────────
+        // ── 4. Embed fonts ──────────────────────────────────────────
         const { StandardFonts } = PDFLib;
         const helvetica = await doc.embedFont(StandardFonts.Helvetica);
 
-        // ── 5. Draw stamp bounding box ───────────────────────────
+        // ── 5. Draw stamp border (optional: transparent or visible) ─────────────
+        // No background fill - transparent background for signature area
+        // Draw only a subtle border if desired, or skip entirely
         page.drawRectangle({
-          x:           pdfX,
-          y:           pdfY,
-          width:       pdfW,
-          height:      pdfH,
-          color:       PDFLib.rgb(0.97, 0.98, 1.0),
-          borderColor: PDFLib.rgb(0.2, 0.4, 0.85),
-          borderWidth: 1.5,
+          x: pdfX,
+          y: pdfY,
+          width: pdfW,
+          height: pdfH,
+          borderColor: PDFLib.rgb(0.3, 0.3, 0.4),
+          borderWidth: 1.0,
         });
 
-        // ── 6. Proportional font sizing ──────────────────────────
-        const lineH    = Math.max(8, pdfH / 4.2);
-        // Use internal padding for text positioning within the stamped area
-        const padX     = Math.max(INTERNAL_PADDING, pdfW * 0.03);
-        const padY     = Math.max(INTERNAL_PADDING, pdfH * 0.05);
-        const nameSize  = Math.min(lineH * 0.85, pdfW * 0.055);
-        const emailSize = Math.min(lineH * 0.72, pdfW * 0.046);
-        const sealSize  = Math.min(lineH * 0.58, pdfW * 0.036);
+        // ── 6. Dynamic font scaling and text wrapping ────────────────────────────
+        // Generate unique Document ID using full UUID format (36 characters)
+        const documentId = crypto.randomUUID();
+        const timestamp = new Date().toISOString();
 
-        const maxSealChars = Math.floor((pdfW - padX * 2) / (sealSize * 0.58));
-        const sealDisplay  = digitalSeal.length > maxSealChars
-          ? digitalSeal.slice(0, maxSealChars - 1) + '\u2026'
-          : digitalSeal;
+        // Base font sizes before any scaling
+        const BASE_TITLE = 12;
+        const BASE_META = 9;
+        const MIN_FONT = 4;      // Safety minimum — clip below this but log warning
+        const PAD = 5;      // Padding from selection-box edges
+        const GAP_AFTER_TITLE = 3;  // Extra gap between title and first metadata line
+        const LEADING = 2;  // Extra leading between lines (on top of font size)
 
-        const y1 = pdfY + pdfH - padY - nameSize * 0.85;
-        const y2 = pdfY + pdfH - padY - nameSize * 0.85 - lineH * 1.1;
-        const y3 = pdfY + pdfH - padY - nameSize * 0.85 - lineH * 2.1;
+        const availableW = pdfW - PAD * 2;   // usable text width inside box
+        const availableH = pdfH - PAD * 2;   // usable text height inside box
+        const startX = pdfX + PAD;
 
-        page.drawText(`Name:  ${name}`,        { x: pdfX + padX, y: y1, size: nameSize,  font: helvetica, color: PDFLib.rgb(0.1,  0.1,  0.1)  });
-        page.drawText(`Email: ${email}`,         { x: pdfX + padX, y: y2, size: emailSize, font: helvetica, color: PDFLib.rgb(0.3,  0.3,  0.5) });
-        page.drawText(`Seal:  ${sealDisplay}`,   { x: pdfX + padX, y: y3, size: sealSize,  font: helvetica, color: PDFLib.rgb(0.5,  0.5,  0.75) });
+        // ── Helper: scale a single line's font size so it fits availableW ────────
+        function fitSize(text, baseSize) {
+          const tw = helvetica.widthOfTextAtSize(text, baseSize);
+          if (tw <= availableW) return baseSize;
+          const scaled = baseSize * (availableW / tw);
+          return Math.max(MIN_FONT, scaled);
+        }
+
+        // ── Helper: wrap a long string into lines that each fit availableW ───────
+        function wrapText(text, size) {
+          // Try to split on spaces first; if a single word is wider than the box,
+          // force-split it character by character.
+          const words = text.split(' ');
+          const lines = [];
+          let current = '';
+          for (const word of words) {
+            const test = current ? current + ' ' + word : word;
+            if (helvetica.widthOfTextAtSize(test, size) <= availableW) {
+              current = test;
+            } else {
+              if (current) lines.push(current);
+              // Handle single word wider than box
+              if (helvetica.widthOfTextAtSize(word, size) > availableW) {
+                let chunk = '';
+                for (const ch of word) {
+                  const test2 = chunk + ch;
+                  if (helvetica.widthOfTextAtSize(test2, size) <= availableW) {
+                    chunk = test2;
+                  } else {
+                    if (chunk) lines.push(chunk);
+                    chunk = ch;
+                  }
+                }
+                current = chunk;
+              } else {
+                current = word;
+              }
+            }
+          }
+          if (current) lines.push(current);
+          return lines.length > 0 ? lines : [text];
+        }
+
+        // ── Build the list of all lines to draw ──────────────────────────────────
+        //   Each entry: { text, color, isTitle }
+        //   Name becomes the title instead of 'Digital Signature'
+        const entries = [];
+        entries.push({ text: name, color: PDFLib.rgb(0.1, 0.1, 0.15), isTitle: true });
+        if (organization) entries.push({ text: `Organization: ${organization}`, color: PDFLib.rgb(0.25, 0.25, 0.35), isTitle: false });
+        if (jobTitle) entries.push({ text: `Job Title: ${jobTitle}`, color: PDFLib.rgb(0.25, 0.25, 0.35), isTitle: false });
+        entries.push({ text: `Email: ${email}`, color: PDFLib.rgb(0.35, 0.35, 0.5), isTitle: false });
+        entries.push({ text: `Timestamp: ${formattedDate}`, color: PDFLib.rgb(0.45, 0.45, 0.55), isTitle: false });
+        entries.push({ text: `Document ID: ${documentId}`, color: PDFLib.rgb(0.45, 0.45, 0.55), isTitle: false });
+        // Seal: wrap the full 64-char hash into as many lines as needed
+        const sealWrapped = wrapText(`Seal: ${digitalSeal}`, BASE_META);
+        sealWrapped.forEach(line => {
+          entries.push({ text: line, color: PDFLib.rgb(0.5, 0.5, 0.65), isTitle: false });
+        });
+
+        // ── Height-based scaling: reduce base sizes until everything fits ────────
+        let titleBase = BASE_TITLE;
+        let metaBase = BASE_META;
+
+        for (let attempt = 0; attempt < 50; attempt++) {
+          // Calculate total height at current base sizes
+          let totalH = 0;
+          entries.forEach((entry, idx) => {
+            const base = entry.isTitle ? titleBase : metaBase;
+            const sz = fitSize(entry.text, base);
+            // Wrap non-title lines to count how many rows they occupy
+            if (entry.isTitle) {
+              totalH += sz;               // title is always 1 line
+            } else {
+              const wrapped = wrapText(entry.text, sz);
+              totalH += wrapped.length * (sz + LEADING);
+            }
+          });
+          totalH += GAP_AFTER_TITLE;  // the extra gap below title
+
+          if (totalH <= availableH) break;   // fits!
+
+          // Shrink both bases by 0.5 pt and try again
+          titleBase = Math.max(MIN_FONT, titleBase - 0.5);
+          metaBase = Math.max(MIN_FONT, metaBase - 0.5);
+          if (titleBase <= MIN_FONT && metaBase <= MIN_FONT) {
+            console.warn('[PDF Signer] Text still overflows at minimum 4pt. Clipping may occur.');
+            break;
+          }
+        }
+
+        // ── 7. Draw all lines ─────────────────────────────────────────────────────
+        // currentY accounts for title font height: start inside the box, not at the edge
+        const titleSz = fitSize(name, titleBase);
+        let currentY = pdfY + pdfH - PAD - titleSz;
+
+        entries.forEach((entry, idx) => {
+          const base = entry.isTitle ? titleBase : metaBase;
+          const sz = fitSize(entry.text, base);
+
+          if (entry.isTitle) {
+            // Title: just draw the name
+            page.drawText(entry.text, {
+              x: startX,
+              y: currentY,
+              size: sz,
+              font: helvetica,
+              color: entry.color,
+            });
+
+            currentY -= sz + GAP_AFTER_TITLE;
+          } else {
+            // Metadata: may wrap to multiple lines
+            const lines = wrapText(entry.text, sz);
+            lines.forEach(line => {
+              page.drawText(line, {
+                x: startX,
+                y: currentY,
+                size: sz,
+                font: helvetica,
+                color: entry.color,
+              });
+              currentY -= sz + LEADING;
+            });
+          }
+        });
+
+        // Store generated values for metadata
+        doc._documentId = documentId;
+        doc._timestamp = timestamp;
 
         // ── 7. Embed Digital Seal in PDF metadata ────────────────
         //    Keywords[0] = Digital Seal (HMAC hex string)
+        //    Keywords[1] = Document ID
         //    Title       = "Name — signed <timestamp>"
         //    Subject     = PIN-derived key hint (for verifier to confirm PIN matched)
         doc.setProducer('PDF-Signer/3.0 (HMAC-SHA256 PIN Seal)');
-        doc.setKeywords([digitalSeal]);
-        doc.setSubject(`Sealed with PIN`);
-        try { doc.setTitle(`${name} \u2014 signed ${utcStamp}`); } catch (_) {}
+        doc.setKeywords([digitalSeal, documentId, timestamp]);
+        doc.setSubject(`Sealed with PIN - Document ID: ${documentId}`);
+        try { doc.setTitle(`${name} \u2014 signed ${formattedDate}`); } catch (_) { }
+
+        // ── 7b. Create clickable Link Annotation over the signature area ──────
+        // Build the verification URL and embed it as a URI action so that
+        // clicking the signature box in any PDF reader opens the verify page.
+        const baseUrl = window.location.href.replace(/\/[^/]*$/, '').replace(/index\.html$/, '') || './';
+        const verifyParams = new URLSearchParams({ seal: digitalSeal, docid: documentId, pin, name, email });
+        // Use index.html for SPA (Single Page Application) routing
+        const verifyHref = `${baseUrl}?${verifyParams.toString()}`;
+
+        try {
+          const linkAnnot = doc.context.obj({
+            Type: 'Annot',
+            Subtype: 'Link',
+            Rect: [pdfX, pdfY, pdfX + pdfW, pdfY + pdfH],
+            Border: [0, 0, 0],
+            A: {
+              Type: 'Action',
+              S: 'URI',
+              URI: PDFLib.PDFString.of(verifyHref),
+            },
+          });
+          const linkRef = doc.context.register(linkAnnot);
+          page.node.addAnnot(linkRef);
+        } catch (annotErr) {
+          console.warn('[PDF Signer] Could not create link annotation:', annotErr.message);
+        }
 
         // ── 8. Export & trigger download ─────────────────────────
         const stampedBytes = await doc.save();
         const blob = new Blob([stampedBytes], { type: 'application/pdf' });
-        const url  = URL.createObjectURL(blob);
+        const url = URL.createObjectURL(blob);
 
-        const anchor       = document.createElement('a');
-        anchor.href        = url;
-        anchor.download    = fileName.replace('.pdf', '_signed.pdf');
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = fileName.replace('.pdf', '_signed.pdf');
         document.body.appendChild(anchor);
         anchor.click();
         document.body.removeChild(anchor);
         URL.revokeObjectURL(url);
 
         // ── 9. Generate and display Verification Link ─────────────────────
-        //    URL contains the Digital Seal + PIN as query parameters.
-        //    When verify.html receives these params it pre-fills the PIN
-        //    and auto-runs verification immediately after the PDF is uploaded.
-        const baseUrl   = window.location.href.replace(/\/[^/]*$/, '').replace(/index\.html$/, '') || './';
-        const params    = new URLSearchParams({ seal: digitalSeal, pin, name, email });
-        const verifyUrl = `verify.html?${params.toString()}`;
+        //    URL contains hash, documentId, and PIN as query parameters.
+        const params = new URLSearchParams({ seal: digitalSeal, docid: documentId, pin, name, email });
+        const verifyUrl = `index.html?${params.toString()}`;
+        // Full absolute URL for the link annotation (already created above)
+        // Update verifyHref to use index.html instead of verify.html
+        const fullVerifyUrl = `${window.location.origin}${window.location.pathname}?${params.toString()}`;
 
-        verifyLink.href        = verifyUrl;
-        verifyLink.textContent = verifyUrl;
+        verifyLink.href = fullVerifyUrl;
+        verifyLink.textContent = fullVerifyUrl;
         verifyLinkBox.classList.add('visible');
 
         infoEl.textContent =
           `\u2713 Downloaded: ${anchor.download}\n` +
           `Page ${selPageIndex + 1} stamped at\n` +
           `(${pdfX.toFixed(1)}, ${pdfY.toFixed(1)})  ${pdfW.toFixed(1)}\u00d7${pdfH.toFixed(1)} pt\n` +
-          `Timestamp: ${utcStamp}\n` +
-          `${name} \u00b7 ${email}${company ? ' \u00b7 ' + company : ''}`;
+          `Timestamp: ${formattedDate}\n` +
+          `${name} \u00b7 ${email}${organization ? ' \u00b7 ' + organization : ''}`;
 
         resultBanner.classList.remove('banner-green', 'banner-red');
         resultBanner.classList.add('banner-green', 'visible');
-        resIcon.textContent  = '\u2713';
+        resIcon.textContent = '\u2713';
         resLabel.textContent = 'SIGNED';
-        resSub.textContent   = `${anchor.download} \u2014 seal generated.`;
+        resSub.textContent = `${anchor.download} \u2014 seal generated.`;
 
-        // Copy-to-clipboard for the verification link
+        // Copy-to-clipboard for the verification link (full absolute URL)
         copyLinkBtn.onclick = () => {
-          navigator.clipboard.writeText(verifyUrl).then(() => {
+          navigator.clipboard.writeText(fullVerifyUrl).then(() => {
             copyLinkBtn.textContent = '\u2713 Copied!';
             setTimeout(() => { copyLinkBtn.textContent = 'Copy link'; }, 2000);
           });
         };
       } catch (err) {
-        sealOut.textContent  = `Error: ${err.message}`;
-        infoEl.textContent   = `Error: ${err.message}`;
+        sealOut.textContent = `Error: ${err.message}`;
+        infoEl.textContent = `Error: ${err.message}`;
         verifyLinkBox.classList.remove('visible');
         resultBanner.classList.remove('banner-green', 'banner-red');
         resultBanner.classList.add('banner-red', 'visible');
-        resIcon.textContent  = '\u2717';
+        resIcon.textContent = '\u2717';
         resLabel.textContent = 'FAILED';
-        resSub.textContent   = err.message;
+        resSub.textContent = err.message;
       } finally {
         refreshBtn();
       }
@@ -903,21 +1406,292 @@
 
     /* ── Clear ────────────────────────────────────────────────── */
     clearBtn.addEventListener('click', () => {
-      fName.value = ''; fEmail.value = ''; fCompany.value = ''; fPin.value = '';
+      fName.value = ''; fEmail.value = ''; fOrganization.value = ''; fJobTitle.value = ''; fPin.value = '';
       fileInput.value = '';
       pdfBytes = null; pagesMeta = []; selPageIndex = null;
       selW = 0; selH = 0; utcStamp = '';
-      selRect.style.display = 'none';
+      hideSelRect(null);
       resultBanner.classList.remove('visible', 'banner-green', 'banner-red');
       hintEl.style.display = 'none';
-      sealOut.textContent  = '(PIN + PDF bytes + metadata)';
-      infoEl.textContent   = 'Upload a PDF, fill in all fields, then drag to select a signature region.';
+      sealOut.textContent = '(PIN + PDF bytes + metadata)';
+      infoEl.textContent = 'Upload a PDF, fill in all fields, then drag to select a signature region.';
       signBtn.disabled = true;
       pageContainer.innerHTML =
         `<div style='color:#9ca3af;font-size:0.85rem;text-align:center;padding:2rem;'>` +
         `Upload a PDF to preview all pages.</div>`;
     });
+
+    /* ════════════════════════════════════════════════════════════
+       VERIFICATION FUNCTIONS (SPA)
+    ════════════════════════════════════════════════════════════ */
+
+    // Helper: parse title into { name, utcTimestamp }
+    function parseTitleForSignee(titleStr) {
+      const marker = ' — signed ';
+      const idx = titleStr.lastIndexOf(marker);
+      if (idx === -1) throw new Error('Title metadata missing " — signed " marker.');
+      const name = titleStr.slice(0, idx).trim();
+      const utcStr = titleStr.slice(idx + marker.length).trim();
+      if (!/^\d{4}-\d{2}-\d{2}T/.test(utcStr))
+        throw new Error(`Timestamp looks malformed: "${utcStr}"`);
+      return { name, utcTimestamp: utcStr };
+    }
+
+    // Recalculate seal for verification
+    async function recalculateSeal(pin, name, email, utcTimestamp, pdfBytes) {
+      const key = await importPinKey(pin);
+      const textEncoder = new TextEncoder();
+      const textPart = textEncoder.encode(name + email + utcTimestamp);
+      const payload = new Uint8Array(textPart.byteLength + pdfBytes.byteLength);
+      payload.set(textPart, 0);
+      payload.set(new Uint8Array(pdfBytes), textPart.byteLength);
+      const signatureBuf = await crypto.subtle.sign('HMAC', key, payload);
+      return bufferToHex(signatureBuf);
+    }
+
+    // Verification UI References
+    const verifyUploadZone = document.getElementById('verifyUploadZone');
+    const verifyFileInput = document.getElementById('verifyFileInput');
+    const verifyFileNameEl = document.getElementById('verifyFileNameEl');
+    const verifyPin = document.getElementById('verifyPin');
+    const verifyMetaTable = document.getElementById('verifyMetaTable');
+    const verifyMetaName = document.getElementById('verifyMetaName');
+    const verifyMetaEmail = document.getElementById('verifyMetaEmail');
+    const verifyMetaTime = document.getElementById('verifyMetaTime');
+    const verifyMetaProducer = document.getElementById('verifyMetaProducer');
+    const verifySealBlock = document.getElementById('verifySealBlock');
+    const verifyStoredSeal = document.getElementById('verifyStoredSeal');
+    const verifyCalcSeal = document.getElementById('verifyCalcSeal');
+    const verifyUrlSealRow = document.getElementById('verifyUrlSealRow');
+    const verifyUrlSeal = document.getElementById('verifyUrlSeal');
+    const verifyMatchMeta = document.getElementById('verifyMatchMeta');
+    const verifyMatchFile = document.getElementById('verifyMatchFile');
+    const verifyMatchUrl = document.getElementById('verifyMatchUrl');
+    const verifyResultBanner = document.getElementById('verifyResultBanner');
+    const verifyResultIcon = document.getElementById('verifyResultIcon');
+    const verifyResultLabel = document.getElementById('verifyResultLabel');
+    const verifyResultSub = document.getElementById('verifyResultSub');
+    const verifyBtn = document.getElementById('verifyBtn');
+    const verifyClearBtn = document.getElementById('verifyClearBtn');
+
+    // Verification state
+    let verifyPdfBytes = null;
+    let verifyStoredSealVal = null;
+    let verifyParsedName = null;
+    let verifyParsedEmail = null;
+    let verifyParsedTime = null;
+
+    // Show URL data banner if verification params present
+    if (isVerificationMode) {
+      const parts = [];
+      if (targetSeal) parts.push(`Seal: ${targetSeal.slice(0, 16)}\u2026${targetSeal.slice(-8)}`);
+      if (targetPin) parts.push(`PIN: [provided in URL]`);
+      if (targetName) parts.push(`Name: ${targetName}`);
+      if (targetEmail) parts.push(`Email: ${targetEmail}`);
+      document.getElementById('urlData').textContent = parts.join(' | ');
+      document.getElementById('urlBanner').style.display = 'block';
+      verifyPin.value = targetPin;
+    }
+
+    // Pre-fill URL parameters if provided
+    if (targetPin) verifyPin.value = targetPin;
+
+    // Drag and drop for verification
+    verifyUploadZone.addEventListener('click', () => verifyFileInput.click());
+    verifyUploadZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      verifyUploadZone.style.borderColor = '#2563eb';
+      verifyUploadZone.style.background = '#eff6ff';
+    });
+    verifyUploadZone.addEventListener('dragleave', () => {
+      verifyUploadZone.style.borderColor = '#c7d2fe';
+      verifyUploadZone.style.background = '';
+    });
+    verifyUploadZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      verifyUploadZone.style.borderColor = '#c7d2fe';
+      verifyUploadZone.style.background = '';
+      const file = e.dataTransfer.files[0];
+      if (file) { verifyFileInput.files = e.dataTransfer.files; triggerVerifyLoad(file); }
+    });
+
+    verifyFileInput.addEventListener('change', () => {
+      const file = verifyFileInput.files[0];
+      if (file) triggerVerifyLoad(file);
+    });
+
+    // Button guard
+    function refreshVerifyBtn() {
+      verifyBtn.disabled = !(verifyPdfBytes && verifyStoredSealVal && verifyPin.value.trim());
+    }
+    verifyPin.addEventListener('input', refreshVerifyBtn);
+
+    // Load PDF for verification
+    async function triggerVerifyLoad(file) {
+      if (!file) return;
+      verifyPdfBytes = null;
+      verifyStoredSealVal = null;
+      verifyParsedName = null;
+      verifyParsedEmail = null;
+      verifyParsedTime = null;
+      verifyFileNameEl.textContent = 'Loading…';
+      verifyMetaTable.style.display = 'none';
+      verifySealBlock.style.display = 'none';
+      verifyUrlSealRow.style.display = 'none';
+      verifyStoredSeal.textContent = '—';
+      verifyCalcSeal.textContent = '—';
+      verifyResultBanner.style.display = 'none';
+      verifyBtn.disabled = true;
+
+      try {
+        const rawBuffer = await file.arrayBuffer();
+        const cloneA = rawBuffer.slice(0);
+        const cloneB = rawBuffer.slice(0);
+        verifyPdfBytes = new Uint8Array(cloneB);
+        const pdfDoc = await PDFLib.PDFDocument.load(cloneA);
+
+        const title = pdfDoc.getTitle() || '';
+        const producer = pdfDoc.getProducer() || '';
+        const keywords = pdfDoc.getKeywords() || [];
+
+        if (!keywords.length) throw new Error('No Keywords in PDF metadata — not signed with this tool.');
+        verifyStoredSealVal = keywords[0];
+
+        const parsed = parseTitleForSignee(title);
+        verifyParsedName = parsed.name;
+        verifyParsedTime = parsed.utcTimestamp;
+        verifyParsedEmail = '(not stored)';
+
+        verifyFileNameEl.textContent = file.name;
+        verifyMetaName.textContent = verifyParsedName;
+        verifyMetaEmail.textContent = verifyParsedEmail;
+        verifyMetaTime.textContent = verifyParsedTime;
+        verifyMetaProducer.textContent = producer;
+        verifyMetaTable.style.display = '';
+        verifySealBlock.style.display = '';
+        verifyStoredSeal.textContent = verifyStoredSealVal;
+
+        if (targetSeal) {
+          verifyUrlSealRow.style.display = '';
+          verifyUrlSeal.textContent = targetSeal;
+        }
+
+        refreshVerifyBtn();
+
+        // Auto-verify if PIN and seal are in URL
+        if (targetPin && targetSeal) {
+          setTimeout(() => runVerification(targetPin), 150);
+        }
+      } catch (err) {
+        verifyFileNameEl.textContent = `Error: ${err.message}`;
+      }
+    }
+
+    // Run verification logic
+    async function runVerification(pin) {
+      if (!verifyPdfBytes || !verifyStoredSealVal || !pin) return;
+
+      verifyResultBanner.style.display = 'none';
+      verifyBtn.disabled = true;
+
+      try {
+        const byteOffset = verifyPdfBytes.byteOffset;
+        const byteLength = verifyPdfBytes.length;
+        const buffer = verifyPdfBytes.buffer;
+        const cloneForSeal = buffer.slice(byteOffset, byteOffset + byteLength);
+
+        const recalculatedSeal = await recalculateSeal(
+          pin,
+          verifyParsedName || '',
+          verifyParsedEmail || '',
+          verifyParsedTime || '',
+          new Uint8Array(cloneForSeal)
+        );
+
+        verifyStoredSeal.textContent = verifyStoredSealVal;
+        verifyCalcSeal.textContent = recalculatedSeal;
+
+        const sealVsStored = recalculatedSeal === verifyStoredSealVal;
+        verifyMatchFile.textContent = sealVsStored ? '\u2713' : '\u2717';
+        verifyMatchFile.style.color = sealVsStored ? '#16a34a' : '#dc2626';
+        verifyMatchMeta.textContent = '\u2713';
+        verifyMatchMeta.style.color = '#16a34a';
+
+        let urlMatch = null;
+        if (targetSeal) {
+          urlMatch = recalculatedSeal === targetSeal;
+          verifyMatchUrl.textContent = urlMatch ? '\u2713' : '\u2717';
+          verifyMatchUrl.style.color = urlMatch ? '#16a34a' : '#dc2626';
+          verifyUrlSealRow.style.display = '';
+        }
+
+        verifyResultBanner.style.display = 'flex';
+        if (sealVsStored && urlMatch !== false) {
+          const fullyLinked = urlMatch === true;
+          verifyResultBanner.style.background = '#f0fdf4';
+          verifyResultBanner.style.border = '2px solid #16a34a';
+          verifyResultIcon.textContent = '\u2713';
+          verifyResultIcon.style.color = '#16a34a';
+          verifyResultLabel.textContent = fullyLinked ? 'AUTHENTIC + LINKED' : 'VERIFIED';
+          verifyResultLabel.style.color = '#16a34a';
+          verifyResultSub.textContent = fullyLinked
+            ? 'All three seals match — document is 100% authentic and linked to this URL.'
+            : 'PIN verified. Digital Seal matches. Document integrity confirmed.';
+          verifyResultSub.style.color = '#15803d';
+        } else {
+          verifyResultBanner.style.background = '#fef2f2';
+          verifyResultBanner.style.border = '2px solid #dc2626';
+          verifyResultIcon.textContent = '\u2717';
+          verifyResultIcon.style.color = '#dc2626';
+          verifyResultLabel.textContent = 'TAMPERED OR WRONG PIN';
+          verifyResultLabel.style.color = '#dc2626';
+          const parts = [];
+          if (!sealVsStored) parts.push('Seal≠Metadata seal');
+          if (urlMatch === false) parts.push('Seal≠URL seal');
+          verifyResultSub.textContent = parts.join(' | ') + ' — either altered or wrong PIN.';
+          verifyResultSub.style.color = '#b91c1c';
+        }
+      } catch (err) {
+        verifyCalcSeal.textContent = `Error: ${err.message}`;
+      } finally {
+        verifyBtn.disabled = false;
+      }
+    }
+
+    verifyBtn.addEventListener('click', async () => {
+      const pin = verifyPin.value.trim();
+      if (!pin) {
+        verifyResultBanner.style.display = 'flex';
+        verifyResultBanner.style.background = '#fef2f2';
+        verifyResultBanner.style.border = '2px solid #dc2626';
+        verifyResultIcon.textContent = '\u2717';
+        verifyResultIcon.style.color = '#dc2626';
+        verifyResultLabel.textContent = 'NO PIN';
+        verifyResultLabel.style.color = '#dc2626';
+        verifyResultSub.textContent = 'Please enter the same PIN used to sign the document.';
+        verifyResultSub.style.color = '#b91c1c';
+        return;
+      }
+      await runVerification(pin);
+    });
+
+    verifyClearBtn.addEventListener('click', () => {
+      verifyFileInput.value = '';
+      verifyPin.value = '';
+      verifyPdfBytes = null;
+      verifyStoredSealVal = null;
+      verifyParsedName = null;
+      verifyParsedEmail = null;
+      verifyParsedTime = null;
+      verifyFileNameEl.textContent = 'No file selected';
+      verifyMetaTable.style.display = 'none';
+      verifySealBlock.style.display = 'none';
+      verifyUrlSealRow.style.display = 'none';
+      verifyResultBanner.style.display = 'none';
+      verifyBtn.disabled = true;
+    });
   </script>
 
 </body>
+
 </html>
