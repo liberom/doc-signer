@@ -681,18 +681,28 @@
       );
     }
 
-    /* ── Generate Digital Seal: HMAC-SHA256(PDF bytes + name + email + timestamp) ── */
-    async function generateDigitalSeal(pin, name, email, utcTimestamp, pdfBytes) {
+    /* ── Normalize helper: trim and handle empty values ───────────────────── */
+    const normalize = (val) => (val ? String(val).trim() : '');
+
+    /* ── Generate Digital Seal: HMAC-SHA256(metadata fields + PIN as key) ───── */
+    async function generateDigitalSeal(pin, data) {
       const key = await importPinKey(pin);
 
-      // Build the signing payload: PDF bytes + UTF-8 Name + UTF-8 Email + UTF-8 Timestamp
-      const textEncoder = new TextEncoder();
-      const textPart = textEncoder.encode(name + email + utcTimestamp);
-      const payload = new Uint8Array(textPart.byteLength + pdfBytes.byteLength);
-      payload.set(textPart, 0);
-      payload.set(new Uint8Array(pdfBytes), textPart.byteLength);
+      // Standardized hash string: all metadata fields joined by '|'
+      const dataToHash = [
+        normalize(data.name),
+        normalize(data.email).toLowerCase(),
+        normalize(data.organization),
+        normalize(data.jobTitle),
+        normalize(data.timestamp),
+        normalize(data.documentId)
+      ].join('|');
 
-      console.log('String being hashed (Signing):', payload);
+      console.log('DEBUG - Final Hash String (Signing):', dataToHash);
+
+      // Encode to bytes and sign with HMAC-SHA256
+      const textEncoder = new TextEncoder();
+      const payload = textEncoder.encode(dataToHash);
 
       // Sign with HMAC-SHA256
       const signatureBuf = await crypto.subtle.sign('HMAC', key, payload);
@@ -1088,7 +1098,16 @@
 
         // ── 1. Generate Digital Seal ───────────────────────────────────────────
         //    seal = HMAC-SHA256( PIN, PDF bytes + name + email + timestamp )
-        const digitalSeal = await generateDigitalSeal(pin, name, email, utcStamp, cloneForHashing);
+        // Build data object for hashing
+        const hashData = {
+          name: name,
+          email: email,
+          organization: organization || '',
+          jobTitle: jobTitle || '',
+          timestamp: utcStamp,
+          documentId: documentId
+        };
+        const digitalSeal = await generateDigitalSeal(pin, hashData);
         console.log('Generated Seal:', digitalSeal);
         sealOut.textContent = digitalSeal;
 
@@ -1477,14 +1496,26 @@
       return { name, utcTimestamp: utcStr };
     }
 
-    // Recalculate seal for verification
-    async function recalculateSeal(pin, name, email, utcTimestamp, pdfBytes) {
+    /* ── Recalculate seal for verification ─────────────────────────────────── */
+    async function recalculateSeal(pin, data) {
       const key = await importPinKey(pin);
+      
+      // Standardized hash string: EXACT SAME format as signing
+      const dataToHash = [
+        normalize(data.name),
+        normalize(data.email).toLowerCase(),
+        normalize(data.organization),
+        normalize(data.jobTitle),
+        normalize(data.timestamp),
+        normalize(data.documentId)
+      ].join('|');
+
+      console.log('DEBUG - Final Hash String (Verification):', dataToHash);
+
+      // Encode to bytes and sign with HMAC-SHA256
       const textEncoder = new TextEncoder();
-      const textPart = textEncoder.encode(name + email + utcTimestamp);
-      const payload = new Uint8Array(textPart.byteLength + pdfBytes.byteLength);
-      payload.set(textPart, 0);
-      payload.set(new Uint8Array(pdfBytes), textPart.byteLength);
+      const payload = textEncoder.encode(dataToHash);
+
       const signatureBuf = await crypto.subtle.sign('HMAC', key, payload);
       return bufferToHex(signatureBuf);
     }
@@ -1520,6 +1551,9 @@
     let verifyParsedName = null;
     let verifyParsedEmail = null;
     let verifyParsedTime = null;
+    let verifyParsedOrganization = null;
+    let verifyParsedJobTitle = null;
+    let verifyParsedDocumentId = null;
 
     // Show URL data banner if verification params present
     if (isVerificationMode) {
@@ -1574,6 +1608,9 @@
       verifyParsedName = null;
       verifyParsedEmail = null;
       verifyParsedTime = null;
+      verifyParsedOrganization = null;
+      verifyParsedJobTitle = null;
+      verifyParsedDocumentId = null;
       verifyFileNameEl.textContent = 'Loading…';
       verifyMetaTable.style.display = 'none';
       verifySealBlock.style.display = 'none';
@@ -1593,77 +1630,43 @@
         const title = pdfDoc.getTitle() || '';
         const producer = pdfDoc.getProducer() || '';
         
-        // Raw Retrieval: Get Subject field (single string, no comma-splitting issue)
-        // Also check Keywords as fallback for backward compatibility
+        // Raw Retrieval: Get Subject field ONLY (ignore Keywords to avoid confusion)
         const subjectRaw = pdfDoc.getSubject() || '';
-        const keywordsRaw = pdfDoc.getKeywords() || [];
         
         console.log('[Verify] Subject raw:', subjectRaw);
-        console.log('[Verify] Keywords raw:', keywordsRaw);
         
-        // Try to parse from Subject first (JSON-in-Metadata)
-        let factsJson = null;
+        // Parse from Subject field - THIS IS THE ONLY SOURCE OF TRUTH
         let factsData = null;
         
-        // First try: Parse from Subject field (primary source)
-        if (subjectRaw && subjectRaw.trim().startsWith('{')) {
-          try {
-            factsData = JSON.parse(subjectRaw);
-            factsJson = subjectRaw;
-            console.log('[Verify] Successfully parsed JSON from Subject field');
-          } catch (e) {
-            console.error('[Verify] Failed to parse Subject as JSON:', e.message);
-            console.error('[Verify] Subject content:', subjectRaw);
-          }
+        if (!subjectRaw || !subjectRaw.trim().startsWith('{')) {
+          throw new Error('No valid JSON found in Subject field. File may not have been signed with this tool.');
         }
         
-        // Second try: Parse from Keywords as comma-separated string
-        if (!factsData && keywordsRaw && keywordsRaw.length > 0) {
-          // Handle both array and comma-separated string formats
-          const keywordsStr = Array.isArray(keywordsRaw) ? keywordsRaw.join(',') : String(keywordsRaw);
-          console.log('[Verify] Attempting to extract JSON from Keywords string:', keywordsStr);
-          
-          // Try to find JSON object in the string (it might be first element)
-          const jsonMatch = keywordsStr.match(/\{.*\}/);
-          if (jsonMatch) {
-            try {
-              factsData = JSON.parse(jsonMatch[0]);
-              factsJson = jsonMatch[0];
-              console.log('[Verify] Successfully parsed JSON from Keywords');
-            } catch (e) {
-              console.error('[Verify] Failed to parse JSON from Keywords:', e.message);
-            }
-          }
-        }
-        
-        // Third try: Fallback to old format (seal, documentId, timestamp in Keywords)
-        if (!factsData && keywordsRaw && keywordsRaw.length >= 3) {
-          console.log('[Verify] Falling back to old metadata format');
-          factsData = {
-            seal: keywordsRaw[0],
-            documentId: keywordsRaw[1],
-            timestamp: keywordsRaw[2]
-          };
-        }
-        
-        if (!factsData) {
-          throw new Error('No valid JSON metadata found in Subject or Keywords. File may not have been signed with this tool.');
+        try {
+          factsData = JSON.parse(subjectRaw);
+          console.log('[Verify] Successfully parsed JSON from Subject field');
+        } catch (e) {
+          console.error('[Verify] Failed to parse Subject as JSON:', e.message);
+          console.error('[Verify] Subject content:', subjectRaw);
+          throw new Error('Invalid JSON in Subject field: ' + e.message);
         }
         
         // Log the extracted metadata object for debugging
         console.log('[Verify] Extracted Metadata Object:', factsData);
         
-        // Extract data from JSON object (source of truth)
+        // Extract data EXCLUSIVELY from parsed JSON object (source of truth)
         verifyStoredSealVal = factsData.seal;
         verifyParsedName = factsData.name || '(name not in metadata)';
         verifyParsedEmail = factsData.email || '(not stored)';
         verifyParsedTime = factsData.timestamp;
+        verifyParsedOrganization = factsData.organization || '';
+        verifyParsedJobTitle = factsData.jobTitle || '';
+        verifyParsedDocumentId = factsData.documentId || '';
 
         verifyFileNameEl.textContent = file.name;
         verifyMetaName.textContent = verifyParsedName;
         verifyMetaEmail.textContent = verifyParsedEmail;
         // Display the timestamp in a user-friendly format, but keep the raw ISO for HMAC
-        // Note: verifyParsedTime is the raw ISO string from the PDF metadata
         try {
           verifyMetaTime.textContent = new Date(verifyParsedTime).toLocaleString();
         } catch (e) {
@@ -1672,14 +1675,14 @@
         
         // Show additional metadata from JSON if available
         const extraInfo = [];
-        if (factsData.organization) extraInfo.push(`Organization: ${factsData.organization}`);
-        if (factsData.jobTitle) extraInfo.push(`Title: ${factsData.jobTitle}`);
-        if (factsData.documentId) extraInfo.push(`Doc ID: ${factsData.documentId}`);
+        if (verifyParsedOrganization) extraInfo.push(`Organization: ${verifyParsedOrganization}`);
+        if (verifyParsedJobTitle) extraInfo.push(`Title: ${verifyParsedJobTitle}`);
+        if (verifyParsedDocumentId) extraInfo.push(`Doc ID: ${verifyParsedDocumentId}`);
         verifyMetaProducer.textContent = producer + (extraInfo.length ? ' | ' + extraInfo.join(' | ') : '');
         
-        console.log('[Verify] Organization:', factsData.organization);
-        console.log('[Verify] Job Title:', factsData.jobTitle);
-        console.log('[Verify] Document ID:', factsData.documentId);
+        console.log('[Verify] Organization:', verifyParsedOrganization);
+        console.log('[Verify] Job Title:', verifyParsedJobTitle);
+        console.log('[Verify] Document ID:', verifyParsedDocumentId);
         
         verifyMetaTable.style.display = '';
         verifySealBlock.style.display = '';
@@ -1715,13 +1718,17 @@
         const buffer = verifyPdfBytes.buffer;
         const cloneForSeal = buffer.slice(byteOffset, byteOffset + byteLength);
 
-        const recalculatedSeal = await recalculateSeal(
-          pin,
-          verifyParsedName || '',
-          verifyParsedEmail || '',
-          verifyParsedTime || '',
-          new Uint8Array(cloneForSeal)
-        );
+        // Build data object from parsed JSON (source of truth)
+        const verifyData = {
+          name: verifyParsedName || '',
+          email: verifyParsedEmail || '',
+          organization: verifyParsedOrganization || '',
+          jobTitle: verifyParsedJobTitle || '',
+          timestamp: verifyParsedTime || '',
+          documentId: verifyParsedDocumentId || ''
+        };
+        
+        const recalculatedSeal = await recalculateSeal(pin, verifyData);
 
         verifyStoredSeal.textContent = verifyStoredSealVal;
         verifyCalcSeal.textContent = recalculatedSeal;
@@ -1798,6 +1805,9 @@
       verifyParsedName = null;
       verifyParsedEmail = null;
       verifyParsedTime = null;
+      verifyParsedOrganization = null;
+      verifyParsedJobTitle = null;
+      verifyParsedDocumentId = null;
       verifyFileNameEl.textContent = 'No file selected';
       verifyMetaTable.style.display = 'none';
       verifySealBlock.style.display = 'none';
