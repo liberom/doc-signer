@@ -1,36 +1,59 @@
-# JSON-in-Metadata Implementation
+## Data Flow
 
-## Overview
-This document describes the JSON-in-Metadata approach for storing all signing facts in the PDF Keywords field as a single JSON string, instead of distributing them across multiple standard metadata fields.
+### Signing:
+1. Collect all facts into a JavaScript object
+2. Generate HMAC-SHA256 seal using PIN + PDF bytes + metadata
+3. Add seal to the facts object
+4. JSON.stringify() the complete object
+5. Store in PDF **Subject** field (primary) and Keywords (fallback)
+6. Set Author field to just the person's name
 
-## Changes Made
+### Verification:
+1. Read Subject field (primary source)
+2. If Subject is valid JSON, parse it
+3. If not, try parsing from Keywords (handles comma-separated strings)
+4. If still no data, fallback to old format (seal, documentId, timestamp)
+5. Extract all fields from the facts object
+6. Re-calculate seal using PIN + PDF bytes
+7. Compare recalculated seal with stored seal
 
-### 1. Signing Logic (index.html)
+## Example JSON Structure
 
-#### Facts Object Creation
-```javascript
-const factsObject = {
-  name: name,
-  email: email,
-  organization: organization || '',
-  jobTitle: jobTitle || '',
-  timestamp: utcStamp,
-  documentId: documentId,
-  seal: digitalSeal
-};
+```json
+{
+  "name": "Jane Doe",
+  "email": "jane@example.com",
+  "organization": "Acme Corp",
+  "jobTitle": "Software Engineer",
+  "timestamp": "2026-04-14T13:43:30.000Z",
+  "documentId": "12345678-1234-1234-1234-123456789abc",
+  "seal": "a1b2c3d4e5f6..."
+}
 ```
 
-#### Storage in Keywords Field
-```javascript
-const factsJson = JSON.stringify(factsObject);
-doc.setKeywords([factsJson]);  // JSON string is the source of truth
-doc.setAuthor(name);           // Author field is just the name (nice display)
-doc.setSubject('Signed PDF with JSON metadata');
-```
+## Files Modified
 
-#### Document Title Format
-- Old: `${name} — signed ${utcStamp}`
-- New: `Document Signed by ${name} — signed ${utcStamp}`
+- `index.html` (signing logic + verification logic in SPA mode)
+- `verify.html` (standalone verification page)
+
+## Verification Order in index.html
+
+1. Standard metadata:
+   - `setAuthor(name)` - Just the person's name for PDF readers
+   
+2. JSON-in-Metadata (Subject field):
+   - `setSubject(factsJson)` - Complete JSON string as source of truth
+   
+3. Fallback (Keywords field):
+   - `setKeywords([digitalSeal, documentId, timestamp])` - For backward compatibility
+
+## Console Logging for Debugging
+
+The verification logic includes comprehensive console logging:
+- Raw Subject and Keywords content before parsing
+- Success/failure messages for each parsing attempt
+- Extracted metadata object for field inspection
+- Organization, Job Title, Document ID, and Seal values
 
 ### 2. Verification Logic (index.html and verify.html)
 

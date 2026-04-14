@@ -454,30 +454,72 @@
 
         const title    = pdfDoc.getTitle()    || '';
         const producer = pdfDoc.getProducer() || '';
-        const keywords = pdfDoc.getKeywords()  || [];
-
-        console.log('[Verify] PDF metadata — title:', title, '| keywords count:', keywords.length);
-
-        if (!keywords.length)
-          throw new Error('No Keywords in PDF metadata — file may not have been signed with this tool.');
-
-        // JSON-in-Metadata: Keywords[0] is now a JSON string
-        const factsJson = keywords[0];
-        let factsData;
-        try {
-          factsData = JSON.parse(factsJson);
-        } catch (e) {
-          throw new Error('Invalid JSON in Keywords metadata — file may have been signed with an older version.');
+        
+        // Raw Retrieval: Get Subject field (single string, no comma-splitting issue)
+        // Also check Keywords as fallback for backward compatibility
+        const subjectRaw = pdfDoc.getSubject() || '';
+        const keywordsRaw = pdfDoc.getKeywords() || [];
+        
+        console.log('[Verify] Subject raw:', subjectRaw);
+        console.log('[Verify] Keywords raw:', keywordsRaw);
+        
+        // Try to parse from Subject first (JSON-in-Metadata)
+        let factsJson = null;
+        let factsData = null;
+        
+        // First try: Parse from Subject field (primary source)
+        if (subjectRaw && subjectRaw.trim().startsWith('{')) {
+          try {
+            factsData = JSON.parse(subjectRaw);
+            factsJson = subjectRaw;
+            console.log('[Verify] Successfully parsed JSON from Subject field');
+          } catch (e) {
+            console.error('[Verify] Failed to parse Subject as JSON:', e.message);
+            console.error('[Verify] Subject content:', subjectRaw);
+          }
         }
+        
+        // Second try: Parse from Keywords as comma-separated string
+        if (!factsData && keywordsRaw && keywordsRaw.length > 0) {
+          // Handle both array and comma-separated string formats
+          const keywordsStr = Array.isArray(keywordsRaw) ? keywordsRaw.join(',') : String(keywordsRaw);
+          console.log('[Verify] Attempting to extract JSON from Keywords string:', keywordsStr);
+          
+          // Try to find JSON object in the string (it might be first element)
+          const jsonMatch = keywordsStr.match(/\{.*\}/);
+          if (jsonMatch) {
+            try {
+              factsData = JSON.parse(jsonMatch[0]);
+              factsJson = jsonMatch[0];
+              console.log('[Verify] Successfully parsed JSON from Keywords');
+            } catch (e) {
+              console.error('[Verify] Failed to parse JSON from Keywords:', e.message);
+            }
+          }
+        }
+        
+        // Third try: Fallback to old format (seal, documentId, timestamp in Keywords)
+        if (!factsData && keywordsRaw && keywordsRaw.length >= 3) {
+          console.log('[Verify] Falling back to old metadata format');
+          factsData = {
+            seal: keywordsRaw[0],
+            documentId: keywordsRaw[1],
+            timestamp: keywordsRaw[2]
+          };
+        }
+        
+        if (!factsData) {
+          throw new Error('No valid JSON metadata found in Subject or Keywords. File may not have been signed with this tool.');
+        }
+        
+        // Log the extracted metadata object for debugging
+        console.log('[Verify] Extracted Metadata Object:', factsData);
         
         // Extract data from JSON object (source of truth)
         storedSeal = factsData.seal;
-        parsedName = factsData.name;
+        parsedName = factsData.name || '(name not in metadata)';
         parsedEmail = factsData.email || '(not stored)';
         parsedTime = factsData.timestamp;
-        
-        // Log the parsed facts for debugging
-        console.log('[Verify] Parsed facts from JSON metadata:', factsData);
 
         fileNameEl.textContent   = file.name;
         metaName.textContent     = parsedName;
@@ -490,19 +532,21 @@
         }
         
         // Show additional metadata from JSON if available
-        if (factsData.organization || factsData.jobTitle || factsData.documentId) {
-          const extraInfo = [];
-          if (factsData.organization) extraInfo.push(`Organization: ${factsData.organization}`);
-          if (factsData.jobTitle) extraInfo.push(`Title: ${factsData.jobTitle}`);
-          if (factsData.documentId) extraInfo.push(`Doc ID: ${factsData.documentId}`);
-          metaProducer.textContent = producer + (extraInfo.length ? ' | ' + extraInfo.join(' | ') : '');
-        } else {
-          metaProducer.textContent = producer;
-        }
+        const extraInfo = [];
+        if (factsData.organization) extraInfo.push(`Organization: ${factsData.organization}`);
+        if (factsData.jobTitle) extraInfo.push(`Title: ${factsData.jobTitle}`);
+        if (factsData.documentId) extraInfo.push(`Doc ID: ${factsData.documentId}`);
+        metaProducer.textContent = producer + (extraInfo.length ? ' | ' + extraInfo.join(' | ') : '');
+        
+        // Log the extracted metadata for debugging
+        console.log('[Verify] Organization:', factsData.organization);
+        console.log('[Verify] Job Title:', factsData.jobTitle);
+        console.log('[Verify] Document ID:', factsData.documentId);
 
         metaTable.style.display = '';
         sealBlock.style.display = '';
         storedSealEl.textContent = storedSeal;
+        console.log('[Verify] Stored Seal:', storedSeal);
 
         // Show URL seal row if present
         if (targetSeal) {
