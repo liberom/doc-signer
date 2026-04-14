@@ -309,12 +309,17 @@
     /* ════════════════════════════════════════════════════════════
        4. Parse Title into (name, utcTimestamp)
        Extracts timestamp as-is from title (raw ISO format stored in PDF)
+       Updated to handle "Document Signed by " prefix
     ════════════════════════════════════════════════════════════ */
     function parseTitleForSignee(titleStr) {
       const marker = ' \u2014 signed ';
       const idx    = titleStr.lastIndexOf(marker);
       if (idx === -1) throw new Error('Title metadata missing " \u2014 signed " marker.');
-      const name      = titleStr.slice(0, idx).trim();
+      let name      = titleStr.slice(0, idx).trim();
+      // Remove "Document Signed by " prefix if present
+      if (name.startsWith('Document Signed by ')) {
+        name = name.slice('Document Signed by '.length).trim();
+      }
       const utcStr    = titleStr.slice(idx + marker.length).trim();
       // Store the timestamp AS-IS for HMAC verification - do NOT reformat
       return { name, utcTimestamp: utcStr };
@@ -456,14 +461,23 @@
         if (!keywords.length)
           throw new Error('No Keywords in PDF metadata — file may not have been signed with this tool.');
 
-        storedSeal = keywords[0];
-
-        const parsed   = parseTitleForSignee(title);
-        parsedName     = parsed.name;
-        // Extract timestamp from PDF keywords (index 2) for HMAC consistency
-        // Keywords: [digitalSeal, documentId, timestamp]
-        parsedTime     = keywords.length > 2 ? keywords[2] : parsed.utcTimestamp;
-        parsedEmail    = '(not stored in standard metadata)';
+        // JSON-in-Metadata: Keywords[0] is now a JSON string
+        const factsJson = keywords[0];
+        let factsData;
+        try {
+          factsData = JSON.parse(factsJson);
+        } catch (e) {
+          throw new Error('Invalid JSON in Keywords metadata — file may have been signed with an older version.');
+        }
+        
+        // Extract data from JSON object (source of truth)
+        storedSeal = factsData.seal;
+        parsedName = factsData.name;
+        parsedEmail = factsData.email || '(not stored)';
+        parsedTime = factsData.timestamp;
+        
+        // Log the parsed facts for debugging
+        console.log('[Verify] Parsed facts from JSON metadata:', factsData);
 
         fileNameEl.textContent   = file.name;
         metaName.textContent     = parsedName;
@@ -474,7 +488,17 @@
         } catch (e) {
           metaTime.textContent = parsedTime;
         }
-        metaProducer.textContent = producer;
+        
+        // Show additional metadata from JSON if available
+        if (factsData.organization || factsData.jobTitle || factsData.documentId) {
+          const extraInfo = [];
+          if (factsData.organization) extraInfo.push(`Organization: ${factsData.organization}`);
+          if (factsData.jobTitle) extraInfo.push(`Title: ${factsData.jobTitle}`);
+          if (factsData.documentId) extraInfo.push(`Doc ID: ${factsData.documentId}`);
+          metaProducer.textContent = producer + (extraInfo.length ? ' | ' + extraInfo.join(' | ') : '');
+        } else {
+          metaProducer.textContent = producer;
+        }
 
         metaTable.style.display = '';
         sealBlock.style.display = '';

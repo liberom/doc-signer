@@ -1315,15 +1315,14 @@
         doc._documentId = documentId;
         doc._timestamp = timestamp;
 
-        // ── 7. Embed Digital Seal in PDF metadata ────────────────
-        //    Keywords[0] = Digital Seal (HMAC hex string)
-        //    Keywords[1] = Document ID
-        //    Title       = "Name — signed <timestamp>"
-        //    Subject     = PIN-derived key hint (for verifier to confirm PIN matched)
+        // ── 7. PDF Metadata (standard fields) ──────────────────────
+        //    Author: just the person's name (nice display in PDF readers)
+        //    Producer: indicates this tool was used
         doc.setProducer('PDF-Signer/3.0 (HMAC-SHA256 PIN Seal)');
-        doc.setKeywords([digitalSeal, documentId, timestamp]);
-        doc.setSubject(`Sealed with PIN - Document ID: ${documentId}`);
-        try { doc.setTitle(`${name} \u2014 signed ${utcStamp}`); } catch (_) { }
+        doc.setAuthor(name);  // Just the name for standard PDF readers
+        
+        // Note: JSON-in-Metadata in Keywords field will be set below (section 9)
+        // which contains all facts: name, email, organization, jobTitle, timestamp, documentId, seal
 
         // ── 7b. Create clickable Link Annotation over the signature area ──────
         // Build the verification URL and embed it as a URI action so that
@@ -1350,6 +1349,33 @@
         } catch (annotErr) {
           console.warn('[PDF Signer] Could not create link annotation:', annotErr.message);
         }
+
+        // ── 8. JSON-in-Metadata: Bundle all facts into a single object ─────────
+        // Create the facts object with all metadata
+        const factsObject = {
+          name: name,
+          email: email,
+          organization: organization || '',
+          jobTitle: jobTitle || '',
+          timestamp: utcStamp,
+          documentId: documentId,
+          seal: digitalSeal
+        };
+
+        // Add the seal to the object, then JSON.stringify()
+        const factsJson = JSON.stringify(factsObject);
+
+        console.log('[PDF Signer] JSON-in-Metadata facts object:', factsObject);
+        console.log('[PDF Signer] JSON string length:', factsJson.length);
+
+        // ── 9. Store the JSON string in Keywords field ─────────────────────────
+        // Keywords[0] = JSON string (source of truth)
+        // Note: Author field already set above to just the person's name
+        doc.setKeywords([factsJson]);  // JSON string is the source of truth
+        doc.setSubject('Signed PDF with JSON metadata');
+        
+        // Update title to include "Document Signed by " prefix
+        try { doc.setTitle(`Document Signed by ${name} \u2014 signed ${utcStamp}`); } catch (_) { }
 
         // ── 8. Export & trigger download ─────────────────────────
         const stampedBytes = await doc.save();
@@ -1434,11 +1460,16 @@
     // Helper: parse title into { name, utcTimestamp }
     // The timestamp in the title is stored as a raw ISO string (e.g., 2026-04-14T13:43:30.000Z)
     // We extract it as-is and use it directly for HMAC verification
+    // Updated to handle "Document Signed by " prefix
     function parseTitleForSignee(titleStr) {
       const marker = ' — signed ';
       const idx = titleStr.lastIndexOf(marker);
       if (idx === -1) throw new Error('Title metadata missing " — signed " marker.');
-      const name = titleStr.slice(0, idx).trim();
+      let name = titleStr.slice(0, idx).trim();
+      // Remove "Document Signed by " prefix if present
+      if (name.startsWith('Document Signed by ')) {
+        name = name.slice('Document Signed by '.length).trim();
+      }
       const utcStr = titleStr.slice(idx + marker.length).trim();
       // Store the timestamp AS-IS for HMAC verification - do NOT reformat
       return { name, utcTimestamp: utcStr };
@@ -1562,26 +1593,46 @@
         const keywords = pdfDoc.getKeywords() || [];
 
         if (!keywords.length) throw new Error('No Keywords in PDF metadata — not signed with this tool.');
-        verifyStoredSealVal = keywords[0];
-
-        const parsed = parseTitleForSignee(title);
-        verifyParsedName = parsed.name;
-        // Extract timestamp from PDF keywords (index 2) for HMAC consistency
-        // Keywords: [digitalSeal, documentId, timestamp]
-        verifyParsedTime = keywords.length > 2 ? keywords[2] : parsed.utcTimestamp;
-        verifyParsedEmail = '(not stored)';
+        
+        // JSON-in-Metadata: Keywords[0] is now a JSON string
+        const factsJson = keywords[0];
+        let factsData;
+        try {
+          factsData = JSON.parse(factsJson);
+        } catch (e) {
+          throw new Error('Invalid JSON in Keywords metadata — file may have been signed with an older version.');
+        }
+        
+        // Extract data from JSON object (source of truth)
+        verifyStoredSealVal = factsData.seal;
+        verifyParsedName = factsData.name;
+        verifyParsedEmail = factsData.email || '(not stored)';
+        verifyParsedTime = factsData.timestamp;
+        
+        // Log the parsed facts for debugging
+        console.log('[Verify] Parsed facts from JSON metadata:', factsData);
 
         verifyFileNameEl.textContent = file.name;
         verifyMetaName.textContent = verifyParsedName;
         verifyMetaEmail.textContent = verifyParsedEmail;
         // Display the timestamp in a user-friendly format, but keep the raw ISO for HMAC
-        // Note: verifyParsedTime is the raw ISO string from the PDF title
+        // Note: verifyParsedTime is the raw ISO string from the PDF metadata
         try {
           verifyMetaTime.textContent = new Date(verifyParsedTime).toLocaleString();
         } catch (e) {
           verifyMetaTime.textContent = verifyParsedTime;
         }
         verifyMetaProducer.textContent = producer;
+        
+        // Show additional metadata from JSON if available
+        if (factsData.organization || factsData.jobTitle) {
+          const extraInfo = [];
+          if (factsData.organization) extraInfo.push(`Organization: ${factsData.organization}`);
+          if (factsData.jobTitle) extraInfo.push(`Title: ${factsData.jobTitle}`);
+          if (factsData.documentId) extraInfo.push(`Doc ID: ${factsData.documentId}`);
+          verifyMetaProducer.textContent = producer + (extraInfo.length ? ' | ' + extraInfo.join(' | ') : '');
+        }
+        
         verifyMetaTable.style.display = '';
         verifySealBlock.style.display = '';
         verifyStoredSeal.textContent = verifyStoredSealVal;
