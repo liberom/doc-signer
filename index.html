@@ -22,7 +22,9 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 1.5rem 1rem 3rem;
+      justify-content: center;
+      margin: 0;
+      padding: 0;
     }
 
     h1 {
@@ -342,6 +344,203 @@
       color: #b91c1c;
     }
 
+    /* ── Verification Panel ─────────────────────────────────── */
+    #verificationPanel {
+      display: none;
+      width: 100%;
+      max-width: 600px;
+      margin: 20px auto;
+      text-align: center;
+      padding: 0 1rem;
+    }
+
+    #verificationPanel .card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 1.8rem 2rem 2.2rem;
+      box-shadow: 0 2px 14px rgba(0,0,0,0.09);
+      width: 100%;
+      max-width: 600px;
+      display: flex;
+      flex-direction: column;
+      gap: 1.1rem;
+      margin: 0 auto;
+    }
+
+    #verificationPanel h1 {
+      font-size: 1.55rem;
+      margin-bottom: 0.35rem;
+    }
+
+    #verificationPanel .subtitle {
+      color: #555;
+      margin-bottom: 1.6rem;
+      font-size: 0.9rem;
+    }
+
+    #verificationPanel .upload-zone {
+      border: 2px dashed #c7d2fe;
+      border-radius: 10px;
+      padding: 1.8rem 1.5rem;
+      text-align: center;
+      transition: border-color 0.2s, background 0.2s;
+      cursor: pointer;
+    }
+
+    #verificationPanel .upload-zone:hover,
+    #verificationPanel .upload-zone.dragover {
+      border-color: #2563eb;
+      background: #eff6ff;
+    }
+
+    #verificationPanel .upload-zone p {
+      font-size: 0.88rem;
+      color: #6b7280;
+      margin-top: 0.4rem;
+    }
+
+    #verificationPanel .meta-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.84rem;
+    }
+
+    #verificationPanel .meta-table th {
+      text-align: left;
+      color: #6b7280;
+      font-weight: 600;
+      padding: 0.28rem 0.5rem 0.28rem 0;
+      border-bottom: 1px solid #e5e7eb;
+      width: 40%;
+    }
+
+    #verificationPanel .meta-table td {
+      padding: 0.28rem 0;
+      border-bottom: 1px solid #e5e7eb;
+      word-break: break-all;
+    }
+
+    #verificationPanel .seal-block {
+      font-size: 0.72rem;
+      color: #374151;
+      background: #f8fafc;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 0.7rem 1rem;
+      word-break: break-all;
+      line-height: 1.65;
+    }
+
+    #verificationPanel .seal-row {
+      display: flex;
+      gap: 0.5rem;
+      align-items: baseline;
+      margin: 0.25rem 0;
+    }
+
+    #verificationPanel .seal-label {
+      flex-shrink: 0;
+      font-weight: 700;
+      min-width: 110px;
+    }
+
+    #verificationPanel #urlBanner {
+      display: none;
+      background: #fffbeb;
+      border: 1.5px solid #f59e0b;
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      font-size: 0.8rem;
+      color: #92400e;
+      line-height: 1.65;
+      word-break: break-all;
+    }
+
+    #verificationPanel #urlBanner.visible {
+      display: block;
+    }
+
+    #verificationPanel #urlBanner strong {
+      display: block;
+      margin-bottom: 0.3rem;
+      color: #78350f;
+    }
+
+    #verificationPanel #verifyResultBanner {
+      display: none;
+      border-radius: 12px;
+      padding: 1.2rem;
+      text-align: center;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.4rem;
+      animation: bannerPop 0.3s ease-out;
+    }
+
+    #verificationPanel #verifyResultBanner.visible {
+      display: flex;
+    }
+
+    #verificationPanel .banner-green {
+      background: #f0fdf4;
+      border: 2px solid #16a34a;
+    }
+
+    #verificationPanel .banner-red {
+      background: #fef2f2;
+      border: 2px solid #dc2626;
+    }
+
+    #verificationPanel .result-icon {
+      font-size: 2.8rem;
+    }
+
+    #verificationPanel .result-label {
+      font-size: 1.5rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+    }
+
+    #verificationPanel .result-sub {
+      font-size: 0.83rem;
+      opacity: 0.85;
+    }
+
+    #verificationPanel .banner-green .result-icon,
+    #verificationPanel .banner-green .result-label {
+      color: #16a34a;
+    }
+
+    #verificationPanel .banner-green .result-sub {
+      color: #15803d;
+    }
+
+    #verificationPanel .banner-red .result-icon,
+    #verificationPanel .banner-red .result-label {
+      color: #dc2626;
+    }
+
+    #verificationPanel .banner-red .result-sub {
+      color: #b91c1c;
+    }
+
+    #verificationPanel .match-icon {
+      font-size: 0.85rem;
+      margin-left: 0.35rem;
+    }
+
+    #verificationPanel .match-yes {
+      color: #16a34a;
+    }
+
+    #verificationPanel .match-no {
+      color: #dc2626;
+    }
+
+    #verificationPanel .match-null {
+      color: #9ca3af;
+    }
+
     /* ── Verification link box ─────────────────────────────── */
     #verifyLinkBox {
       display: none;
@@ -526,97 +725,68 @@
   <!-- ══════════════════════════════════════════════════════════════════
        VERIFICATION PANEL (SPA) - Hidden by default
        ══════════════════════════════════════════════════════════════════ -->
-  <div id='verificationPanel' style='display:none; width:100%; max-width:560px;'>
-    <!-- <h1>Verify Signed PDF</h1>
-    <p class='subtitle'>Enter the same PIN used at signing to verify the Digital Seal</p>
-    -->
+  <div id='verificationPanel'>
     <div class='card'>
       <!-- Target data from URL query string -->
-      <div id='urlBanner'
-        style='display:none; background:#fffbeb; border:1.5px solid #f59e0b; border-radius:8px; padding:0.75rem 1rem; font-size:0.8rem; color:#92400e; line-height:1.65; word-break:break-all;'>
-        <strong style='display:block; margin-bottom:0.3rem; color:#78350f;'>Target Verification Data (from URL)</strong>
+      <div id='urlBanner'>
+        <strong>Target Verification Data (from URL)</strong>
         <div id='urlData'></div>
       </div>
 
       <!-- Upload zone -->
-      <div class='upload-zone' id='verifyUploadZone'
-        style='border:2px dashed #c7d2fe; border-radius:10px; padding:1.8rem 1.5rem; text-align:center; cursor:pointer; transition:border-color 0.2s, background 0.2s;'>
-        <span style='font-size:2.4rem; display:block; margin-bottom:0.3rem;'>📄</span>
+      <div class='upload-zone' id='verifyUploadZone'>
+        <span class='upload-icon'>📄</span>
         <strong>Click or drag a signed PDF here</strong>
-        <p id='verifyFileNameEl' style='font-size:0.88rem; color:#6b7280; margin-top:0.4rem;'>No file selected</p>
+        <p id='verifyFileNameEl'>No file selected</p>
       </div>
       <input type='file' id='verifyFileInput' accept='.pdf,application/pdf' style='display:none;' />
 
       <hr class='divider' />
-      <div style='font-size:0.78rem; font-weight:700; color:#374151; letter-spacing:0.04em;'>Extracted Metadata</div>
+      <div class='label-section'>Extracted Metadata</div>
 
-      <table id='verifyMetaTable' style='display:none; width:100%; border-collapse:collapse; font-size:0.84rem;'>
+      <table class='meta-table' id='verifyMetaTable' style='display:none;'>
         <tbody>
-          <tr>
-            <th
-              style='text-align:left; color:#6b7280; font-weight:600; padding:0.28rem 0.5rem 0.28rem 0; border-bottom:1px solid #e5e7eb; width:40%;'>
-              Signer Name</th>
-            <td id='verifyMetaName'>—</td>
-          </tr>
-          <tr>
-            <th
-              style='text-align:left; color:#6b7280; font-weight:600; padding:0.28rem 0.5rem 0.28rem 0; border-bottom:1px solid #e5e7eb;'>
-              Email</th>
-            <td id='verifyMetaEmail'>—</td>
-          </tr>
-          <tr>
-            <th
-              style='text-align:left; color:#6b7280; font-weight:600; padding:0.28rem 0.5rem 0.28rem 0; border-bottom:1px solid #e5e7eb;'>
-              Timestamp</th>
-            <td id='verifyMetaTime'>—</td>
-          </tr>
-          <tr>
-            <th
-              style='text-align:left; color:#6b7280; font-weight:600; padding:0.28rem 0.5rem 0.28rem 0; border-bottom:1px solid #e5e7eb;'>
-              Producer</th>
-            <td id='verifyMetaProducer'>—</td>
-          </tr>
+          <tr><th>Signer Name</th><td id='verifyMetaName'>—</td></tr>
+          <tr><th>Email</th><td id='verifyMetaEmail'>—</td></tr>
+          <tr><th>Timestamp</th><td id='verifyMetaTime'>—</td></tr>
+          <tr><th>Producer</th><td id='verifyMetaProducer'>—</td></tr>
         </tbody>
       </table>
 
       <!-- PIN input -->
-      <label style='gap:0.3rem;'>
+      <label>
         Signer PIN
         <input type='password' id='verifyPin' class='pin-field'
-          style='background:#fffbf0; border-color:#f59e0b; padding:0.5rem 0.8rem; font-size:0.92rem; outline:none; transition:border-color 0.15s; width:100%;'
           placeholder='Enter the same PIN used to sign' autocomplete='off' />
         <span class='pin-hint'>Required to re-calculate the Digital Seal</span>
       </label>
 
       <!-- Seal comparison -->
       <div id='verifySealBlock' style='display:none;'>
-        <div
-          style='font-size:0.72rem; color:#374151; background:#f8fafc; border:1px solid #e5e7eb; border-radius:8px; padding:0.7rem 1rem; word-break:break-all; line-height:1.65;'>
-          <div style='display:flex; gap:0.5rem; align-items:baseline; margin:0.25rem 0;'>
-            <span style='font-weight:700; min-width:110px;'>Stored Seal</span>
-            <span id='verifyStoredSeal' style='word-break:break-all;'>—</span>
-            <span id='verifyMatchMeta' style='color:#9ca3af;'>—</span>
+        <div class='seal-block'>
+          <div class='seal-row'>
+            <span class='seal-label'>Stored Seal</span>
+            <span class='seal-value' id='verifyStoredSeal'>—</span>
+            <span class='match-icon match-null' id='verifyMatchMeta'>—</span>
           </div>
-          <div style='display:flex; gap:0.5rem; align-items:baseline; margin:0.25rem 0;'>
-            <span style='font-weight:700; min-width:110px;'>Recalc. Seal</span>
-            <span id='verifyCalcSeal' style='word-break:break-all;'>—</span>
-            <span id='verifyMatchFile' style='color:#9ca3af;'>—</span>
+          <div class='seal-row'>
+            <span class='seal-label'>Recalc. Seal</span>
+            <span class='seal-value' id='verifyCalcSeal'>—</span>
+            <span class='match-icon match-null' id='verifyMatchFile'>—</span>
           </div>
-          <div id='verifyUrlSealRow'
-            style='display:none; display:flex; gap:0.5rem; align-items:baseline; margin:0.25rem 0;'>
-            <span style='font-weight:700; min-width:110px;'>URL Param Seal</span>
-            <span id='verifyUrlSeal' style='word-break:break-all;'>—</span>
-            <span id='verifyMatchUrl' style='color:#9ca3af;'>—</span>
+          <div class='seal-row' id='verifyUrlSealRow' style='display:none;'>
+            <span class='seal-label'>URL Param Seal</span>
+            <span class='seal-value' id='verifyUrlSeal'>—</span>
+            <span class='match-icon match-null' id='verifyMatchUrl'>—</span>
           </div>
         </div>
       </div>
 
       <!-- Result -->
-      <div id='verifyResultBanner'
-        style='display:none; border-radius:12px; padding:1.2rem; text-align:center; flex-direction:column; align-items:center; gap:0.4rem;'>
-        <div style='font-size:2.8rem;' id='verifyResultIcon'>✓</div>
-        <div style='font-size:1.5rem; font-weight:800; letter-spacing:0.06em;' id='verifyResultLabel'>VERIFIED</div>
-        <div style='font-size:0.83rem; opacity:0.85;' id='verifyResultSub'></div>
+      <div id='verifyResultBanner'>
+        <div class='result-icon' id='verifyResultIcon'>✓</div>
+        <div class='result-label' id='verifyResultLabel'>VERIFIED</div>
+        <div class='result-sub' id='verifyResultSub'></div>
       </div>
 
       <!-- Actions -->
@@ -787,11 +957,16 @@
     if (isVerificationMode) {
       // Hide signing form, show verification panel
       if (signingPanel) signingPanel.style.display = 'none';
+      // Update header text for verification mode
+      const headerEl = document.querySelector('h1');
+      if (headerEl) headerEl.textContent = 'Verify Signed PDF';
+      const subtitleEl = document.querySelector('.subtitle');
+      if (subtitleEl) subtitleEl.textContent = 'Enter the same PIN used at signing to verify the Digital Seal';
+      // Show verification panel
       verificationPanel.style.display = 'block';
-      document.querySelector('h1').textContent = 'Verify Signed PDF';
-      document.querySelector('.subtitle').textContent = 'Enter the same PIN used at signing to verify the Digital Seal';
     } else {
       // Show signing form, hide verification panel
+      if (signingPanel) signingPanel.style.display = 'flex';
       verificationPanel.style.display = 'none';
     }
 
@@ -1577,17 +1752,14 @@
     verifyUploadZone.addEventListener('click', () => verifyFileInput.click());
     verifyUploadZone.addEventListener('dragover', (e) => {
       e.preventDefault();
-      verifyUploadZone.style.borderColor = '#2563eb';
-      verifyUploadZone.style.background = '#eff6ff';
+      verifyUploadZone.classList.add('dragover');
     });
     verifyUploadZone.addEventListener('dragleave', () => {
-      verifyUploadZone.style.borderColor = '#c7d2fe';
-      verifyUploadZone.style.background = '';
+      verifyUploadZone.classList.remove('dragover');
     });
     verifyUploadZone.addEventListener('drop', (e) => {
       e.preventDefault();
-      verifyUploadZone.style.borderColor = '#c7d2fe';
-      verifyUploadZone.style.background = '';
+      verifyUploadZone.classList.remove('dragover');
       const file = e.dataTransfer.files[0];
       if (file) { verifyFileInput.files = e.dataTransfer.files; triggerVerifyLoad(file); }
     });
@@ -1620,7 +1792,7 @@
       verifyUrlSealRow.style.display = 'none';
       verifyStoredSeal.textContent = '—';
       verifyCalcSeal.textContent = '—';
-      verifyResultBanner.style.display = 'none';
+      verifyResultBanner.classList.remove('visible', 'banner-green', 'banner-red');
       verifyBtn.disabled = true;
 
       try {
@@ -1712,7 +1884,7 @@
     async function runVerification(pin) {
       if (!verifyPdfBytes || !verifyStoredSealVal || !pin) return;
 
-      verifyResultBanner.style.display = 'none';
+      verifyResultBanner.classList.remove('visible', 'banner-green', 'banner-red');
       verifyBtn.disabled = true;
 
       try {
@@ -1746,43 +1918,36 @@
 
         const sealVsStored = recalculatedSeal === verifyStoredSealVal;
         verifyMatchFile.textContent = sealVsStored ? '\u2713' : '\u2717';
-        verifyMatchFile.style.color = sealVsStored ? '#16a34a' : '#dc2626';
+        verifyMatchFile.className = 'match-icon ' + (sealVsStored ? 'match-yes' : 'match-no');
         verifyMatchMeta.textContent = '\u2713';
-        verifyMatchMeta.style.color = '#16a34a';
+        verifyMatchMeta.className = 'match-icon match-yes';
 
         let urlMatch = null;
         if (targetSeal) {
           urlMatch = recalculatedSeal === targetSeal;
           verifyMatchUrl.textContent = urlMatch ? '\u2713' : '\u2717';
-          verifyMatchUrl.style.color = urlMatch ? '#16a34a' : '#dc2626';
+          verifyMatchUrl.className = 'match-icon ' + (urlMatch ? 'match-yes' : 'match-no');
           verifyUrlSealRow.style.display = '';
         }
 
-        verifyResultBanner.style.display = 'flex';
+        verifyResultBanner.classList.remove('banner-green', 'banner-red');
+        verifyResultBanner.classList.add('visible');
         if (sealVsStored && urlMatch !== false) {
           const fullyLinked = urlMatch === true;
-          verifyResultBanner.style.background = '#f0fdf4';
-          verifyResultBanner.style.border = '2px solid #16a34a';
+          verifyResultBanner.classList.add('banner-green');
           verifyResultIcon.textContent = '\u2713';
-          verifyResultIcon.style.color = '#16a34a';
           verifyResultLabel.textContent = fullyLinked ? 'AUTHENTIC + LINKED' : 'VERIFIED';
-          verifyResultLabel.style.color = '#16a34a';
           verifyResultSub.textContent = fullyLinked
             ? 'All three seals match — document is 100% authentic and linked to this URL.'
             : 'PIN verified. Digital Seal matches. Document integrity confirmed.';
-          verifyResultSub.style.color = '#15803d';
         } else {
-          verifyResultBanner.style.background = '#fef2f2';
-          verifyResultBanner.style.border = '2px solid #dc2626';
+          verifyResultBanner.classList.add('banner-red');
           verifyResultIcon.textContent = '\u2717';
-          verifyResultIcon.style.color = '#dc2626';
           verifyResultLabel.textContent = 'TAMPERED OR WRONG PIN';
-          verifyResultLabel.style.color = '#dc2626';
           const parts = [];
           if (!sealVsStored) parts.push('Seal≠Metadata seal');
           if (urlMatch === false) parts.push('Seal≠URL seal');
           verifyResultSub.textContent = parts.join(' | ') + ' — either altered or wrong PIN.';
-          verifyResultSub.style.color = '#b91c1c';
         }
       } catch (err) {
         verifyCalcSeal.textContent = `Error: ${err.message}`;
@@ -1794,15 +1959,11 @@
     verifyBtn.addEventListener('click', async () => {
       const pin = verifyPin.value.trim();
       if (!pin) {
-        verifyResultBanner.style.display = 'flex';
-        verifyResultBanner.style.background = '#fef2f2';
-        verifyResultBanner.style.border = '2px solid #dc2626';
+        verifyResultBanner.classList.remove('banner-green', 'banner-red');
+        verifyResultBanner.classList.add('banner-red', 'visible');
         verifyResultIcon.textContent = '\u2717';
-        verifyResultIcon.style.color = '#dc2626';
         verifyResultLabel.textContent = 'NO PIN';
-        verifyResultLabel.style.color = '#dc2626';
         verifyResultSub.textContent = 'Please enter the same PIN used to sign the document.';
-        verifyResultSub.style.color = '#b91c1c';
         return;
       }
       await runVerification(pin);
@@ -1823,7 +1984,7 @@
       verifyMetaTable.style.display = 'none';
       verifySealBlock.style.display = 'none';
       verifyUrlSealRow.style.display = 'none';
-      verifyResultBanner.style.display = 'none';
+      verifyResultBanner.classList.remove('visible', 'banner-green', 'banner-red');
       verifyBtn.disabled = true;
     });
   </script>
