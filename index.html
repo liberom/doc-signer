@@ -4,7 +4,12 @@
 <head>
   <meta charset='UTF-8' />
   <meta name='viewport' content='width=device-width, initial-scale=1.0' />
-  <title>PDF Signer — PIN Seal</title>
+  <title>PDF Signer — PIN Seal | Assinatura Digital de PDFs</title>
+  <meta name='description' content='Ferramenta gratuita para assinar PDFs com PIN criptográfico. Verificação de autenticidade integrada. 100% no navegador — seus arquivos nunca saem do seu computador.' />
+  <meta property='og:title' content='PDF Signer — PIN Seal' />
+  <meta property='og:description' content='Assine PDFs com PIN criptográfico. Verificação integrada, 100% client-side.' />
+  <meta property='og:type' content='website' />
+  <link rel='icon' href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔏</text></svg>">
   <style>
     *,
     *::before,
@@ -1988,6 +1993,28 @@
       verifyBtn.disabled = true;
     });
   </script>
+
+  <!-- Email capture -->
+  <div style="max-width:600px;margin:40px auto;text-align:center;padding:0 1rem;">
+    <div style="background:#fff;border-radius:14px;padding:1.5rem 2rem;box-shadow:0 2px 14px rgba(0,0,0,0.09);">
+      <h3 style="font-size:1rem;font-weight:700;margin-bottom:.25rem;">Get feature updates</h3>
+      <p style="color:#6b7280;font-size:.85rem;margin-bottom:1rem;">New signing features, security improvements, and tips.</p>
+      <form id="email-form" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
+        <input type="email" name="email" data-fs-field placeholder="you@example.com" required
+          style="flex:1;min-width:200px;padding:.55rem .75rem;border:1.5px solid #d1d5db;border-radius:8px;font-size:.9rem;outline:none;" />
+        <button type="submit" data-fs-submit-btn style="background:#2563eb;color:#fff;border:none;padding:.55rem 1.2rem;border-radius:8px;font-weight:600;font-size:.9rem;cursor:pointer;">Subscribe</button>
+      </form>
+      <div data-fs-success style="color:#16a34a;font-size:.85rem;margin-top:.5rem;"></div>
+      <div data-fs-error style="color:#dc2626;font-size:.85rem;margin-top:.5rem;"></div>
+      <span data-fs-error="email" style="display:block;color:#dc2626;font-size:.8rem;margin-top:4px;"></span>
+    </div>
+  </div>
+
+  <script>
+    window.formspree = window.formspree || function () { (formspree.q = formspree.q || []).push(arguments); };
+    formspree('initForm', { formElement: '#email-form', formId: 'xnjwwlzw' });
+  </script>
+  <script src="https://unpkg.com/@formspree/ajax@1" defer></script>
 
 </body>
 
