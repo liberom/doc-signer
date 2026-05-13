@@ -4,7 +4,12 @@
 <head>
   <meta charset='UTF-8' />
   <meta name='viewport' content='width=device-width, initial-scale=1.0' />
-  <title>PDF Signer — PIN Seal</title>
+  <title>PDF Signer — PIN Seal | Hashcode</title>
+  <meta name='description' content='Ferramenta gratuita para assinar PDFs com PIN criptográfico. Verificação de autenticidade integrada. 100% no navegador — seus arquivos nunca saem do seu computador.' />
+  <meta property='og:title' content='PDF Signer — PIN Seal' />
+  <meta property='og:description' content='Assine PDFs com PIN criptográfico. Verificação integrada, 100% client-side.' />
+  <meta property='og:type' content='website' />
+  <link rel='icon' href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔏</text></svg>">
   <style>
     *,
     *::before,
@@ -855,29 +860,26 @@
     const normalize = (val) => (val ? String(val).trim() : '');
 
     /* ── Generate Digital Seal: HMAC-SHA256(metadata fields + PIN as key) ───── */
-    async function generateDigitalSeal(pin, data) {
+    async function generateDigitalSeal(pin, data, pdfHash) {
       const key = await importPinKey(pin);
 
-      // Standardized hash string: all metadata fields joined by '|'
+      // Standardized hash string: metadata fields + PDF content hash joined by '|'
+      // Binding PDF hash ensures the seal is specific to this exact document
       const dataToHash = [
         normalize(data.name),
         normalize(data.email).toLowerCase(),
         normalize(data.organization),
         normalize(data.jobTitle),
         normalize(data.timestamp),
-        normalize(data.documentId)
+        normalize(data.documentId),
+        pdfHash || ''
       ].join('|');
 
-      console.log('DEBUG - Final Hash String (Signing):', dataToHash);
+      console.debug('Seal hash string (signing):', dataToHash);
 
-      // Encode to bytes and sign with HMAC-SHA256
       const textEncoder = new TextEncoder();
       const payload = textEncoder.encode(dataToHash);
-
-      // Sign with HMAC-SHA256
       const signatureBuf = await crypto.subtle.sign('HMAC', key, payload);
-
-      // Convert raw bytes to hex: this is the "Digital Seal"
       return bufferToHex(signatureBuf);
     }
 
@@ -1272,11 +1274,14 @@
         console.log('Buffer loaded:', pdfArrayBuffer);
 
         // ── 1. Generate Digital Seal ───────────────────────────────────────────
-        //    seal = HMAC-SHA256( PIN, metadata fields )
-        //    Generate documentId FIRST so it can be used in the hash
+        //    seal = HMAC-SHA256( PIN, metadata | pdfHash )
+        //    Compute PDF content hash first so seal binds to the exact document
         const documentId = crypto.randomUUID();
 
-        // Build data object for hashing
+        // Compute SHA-256 of the PDF bytes for content binding
+        const pdfHashBytes = await crypto.subtle.digest('SHA-256', cloneForHashing);
+        const pdfHash = bufferToHex(pdfHashBytes);
+
         const hashData = {
           name: name,
           email: email,
@@ -1285,8 +1290,8 @@
           timestamp: utcStamp,
           documentId: documentId
         };
-        const digitalSeal = await generateDigitalSeal(pin, hashData);
-        console.log('Generated Seal:', digitalSeal);
+        const digitalSeal = await generateDigitalSeal(pin, hashData, pdfHash);
+        console.debug('Seal:', digitalSeal, 'PDF hash:', pdfHash);
         sealOut.textContent = digitalSeal;
 
         // ── 2. Load PDF — use the second independent clone ─────────────────
@@ -1556,7 +1561,8 @@
           jobTitle: jobTitle || '',
           timestamp: utcStamp,
           documentId: documentId,
-          seal: digitalSeal
+          seal: digitalSeal,
+          pdfHash: pdfHash
         };
 
         // Add the seal to the object, then JSON.stringify()
@@ -1675,25 +1681,23 @@
     }
 
     /* ── Recalculate seal for verification ─────────────────────────────────── */
-    async function recalculateSeal(pin, data) {
+    async function recalculateSeal(pin, data, pdfHash) {
       const key = await importPinKey(pin);
 
-      // Standardized hash string: EXACT SAME format as signing
       const dataToHash = [
         normalize(data.name),
         normalize(data.email).toLowerCase(),
         normalize(data.organization),
         normalize(data.jobTitle),
         normalize(data.timestamp),
-        normalize(data.documentId)
+        normalize(data.documentId),
+        pdfHash || ''
       ].join('|');
 
-      console.log('DEBUG - Final Hash String (Verification):', dataToHash);
+      console.debug('Seal hash string (verification):', dataToHash);
 
-      // Encode to bytes and sign with HMAC-SHA256
       const textEncoder = new TextEncoder();
       const payload = textEncoder.encode(dataToHash);
-
       const signatureBuf = await crypto.subtle.sign('HMAC', key, payload);
       return bufferToHex(signatureBuf);
     }
@@ -1732,6 +1736,7 @@
     let verifyParsedOrganization = null;
     let verifyParsedJobTitle = null;
     let verifyParsedDocumentId = null;
+    let verifyParsedPdfHash = null;
 
     // Show URL data banner if verification params present
     if (isVerificationMode) {
@@ -1837,6 +1842,7 @@
         verifyParsedOrganization = factsData.organization || '';
         verifyParsedJobTitle = factsData.jobTitle || '';
         verifyParsedDocumentId = factsData.documentId || '';
+        verifyParsedPdfHash = factsData.pdfHash || '';
 
         verifyFileNameEl.textContent = file.name;
         verifyMetaName.textContent = verifyParsedName;
@@ -1893,14 +1899,18 @@
         const buffer = verifyPdfBytes.buffer;
         const cloneForSeal = buffer.slice(byteOffset, byteOffset + byteLength);
 
+        // Compute SHA-256 of the PDF bytes for content binding verification
+        const pdfHashBytes = await crypto.subtle.digest('SHA-256', cloneForSeal);
+        const computedPdfHash = bufferToHex(pdfHashBytes);
+
         // Build data object from parsed JSON (source of truth)
-        // Extract all fields individually to avoid any scoping issues
         const name = verifyParsedName || '';
         const email = verifyParsedEmail || '';
         const organization = verifyParsedOrganization || '';
         const jobTitle = verifyParsedJobTitle || '';
         const timestamp = verifyParsedTime || '';
         const docId = verifyParsedDocumentId || '';
+        const storedPdfHash = verifyParsedPdfHash || '';
 
         const verifyData = {
           name: name,
@@ -1911,7 +1921,8 @@
           documentId: docId
         };
 
-        const recalculatedSeal = await recalculateSeal(pin, verifyData);
+                // Use stored pdfHash for HMAC recalculation (what was used at signing time)
+        const recalculatedSeal = await recalculateSeal(pin, verifyData, storedPdfHash);
 
         verifyStoredSeal.textContent = verifyStoredSealVal;
         verifyCalcSeal.textContent = recalculatedSeal;
@@ -1980,6 +1991,7 @@
       verifyParsedOrganization = null;
       verifyParsedJobTitle = null;
       verifyParsedDocumentId = null;
+      verifyParsedPdfHash = null;
       verifyFileNameEl.textContent = 'No file selected';
       verifyMetaTable.style.display = 'none';
       verifySealBlock.style.display = 'none';
@@ -1988,6 +2000,28 @@
       verifyBtn.disabled = true;
     });
   </script>
+
+  <!-- Email capture -->
+  <div style="max-width:600px;margin:40px auto;text-align:center;padding:0 1rem;">
+    <div style="background:#fff;border-radius:14px;padding:1.5rem 2rem;box-shadow:0 2px 14px rgba(0,0,0,0.09);">
+      <h3 style="font-size:1rem;font-weight:700;margin-bottom:.25rem;">Get feature updates</h3>
+      <p style="color:#6b7280;font-size:.85rem;margin-bottom:1rem;">New signing features, security improvements, and tips.</p>
+      <form id="email-form" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
+        <input type="email" name="email" data-fs-field placeholder="you@example.com" required
+          style="flex:1;min-width:200px;padding:.55rem .75rem;border:1.5px solid #d1d5db;border-radius:8px;font-size:.9rem;outline:none;" />
+        <button type="submit" data-fs-submit-btn style="background:#2563eb;color:#fff;border:none;padding:.55rem 1.2rem;border-radius:8px;font-weight:600;font-size:.9rem;cursor:pointer;">Subscribe</button>
+      </form>
+      <div data-fs-success style="color:#16a34a;font-size:.85rem;margin-top:.5rem;"></div>
+      <div data-fs-error style="color:#dc2626;font-size:.85rem;margin-top:.5rem;"></div>
+      <span data-fs-error="email" style="display:block;color:#dc2626;font-size:.8rem;margin-top:4px;"></span>
+    </div>
+  </div>
+
+  <script>
+    window.formspree = window.formspree || function () { (formspree.q = formspree.q || []).push(arguments); };
+    formspree('initForm', { formElement: '#email-form', formId: 'xnjwwlzw' });
+  </script>
+  <script src="https://unpkg.com/@formspree/ajax@1" defer></script>
 
 </body>
 
